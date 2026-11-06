@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { RunDialogHost } from "@/features/runs/RunDialogHost";
 import { SiteFooter } from "@/features/site/SiteFooter";
 import { SiteHeader } from "@/features/site/SiteHeader";
+import { NavigationProgress } from "@/ui/NavigationProgress";
 import "./globals.css";
 
 const play = Play({
@@ -19,10 +20,16 @@ export const metadata: Metadata = {
     "Global records for the Counter-Strike: Source bunnyhop community.",
 };
 
+// Every page waits for its data and arrives whole, rather than showing its heading and filling in: following a
+// link keeps the old page, with the progress bar running, until the new one is complete. This lets every
+// route block (Next would otherwise expect each to show a static shell at once).
+export const instant = false;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${play.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
+        <NavigationProgress />
         {/* The header and page fill at least the window, so the footer starts right at the fold: the page
             always scrolls, and the scrollbar doesn't come and go between short and long pages. The space
             above the footer is padding in here, not a margin on the footer, so it doesn't push it lower. */}

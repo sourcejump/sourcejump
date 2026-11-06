@@ -42,7 +42,9 @@ const eslintConfig = defineConfig([
       "no-restricted-imports": [
         "error",
         {
+          // Only the component: hooks such as useLinkStatus are fine to use anywhere.
           name: "next/link",
+          importNames: ["default"],
           message: "Use Link from @/ui/Link, which turns off prefetching.",
         },
       ],

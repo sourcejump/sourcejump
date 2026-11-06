@@ -23,6 +23,9 @@ const nextConfig: NextConfig = {
     // That proxying buffers request bodies, cut off at 10 MB by default; a packed map can be up to the API's
     // 256 MB (`staff/map_viewer_file.rs`).
     proxyClientMaxBodySize: "256mb",
+    // Pages wait for their data and arrive whole (`instant = false` in the root layout), so development
+    // shouldn't warn that each one blocks its navigation. Set explicitly: Next's default may change.
+    instantInsights: { validationLevel: "manual-warning" },
   },
   turbopack: {
     rules: {
