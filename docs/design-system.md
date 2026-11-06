@@ -73,10 +73,10 @@ All of them respect `prefers-reduced-motion` and show their end state at once.
 ## Navigation
 Pages swap in place with no full page load. The old page fades out quickly and the new one fades in, using React's `<ViewTransition>` in `Page` and the `page-fade` rules in `motion.css`. The header has its own view-transition name, so it stays still during the fade. Browsers without view transitions swap pages without the fade. A page with views, such as a map and its Manage view, keeps its header in a route layout and wraps each view in `PageView`: switching views fades the old one out and lifts the new one in (`view-flip`), and the header stays.
 
-Links never prefetch, whether in view or hovered (lead's choice, 2026-10-19). A page loads only once it's opened; an accent bar at the top (`NavigationProgress`) runs until it's shown. `e2e/navigation.e2e.ts` checks that following a link doesn't reload the page.
+Links never prefetch, whether in view or hovered (lead's choice, 2026-10-19). A page loads only once it's opened, and the fade covers the wait. `e2e/navigation.e2e.ts` checks that following a link doesn't reload the page.
 
 ## Layout shell (`web/src/features/site/`)
-Header (wordmark, sections, account corner) and footer, applied in the root layout. On narrow screens the sections collapse into a menu. The account corner (sign-in button, or the player's menu) and the current-section highlight depend on the request, so each sits in `<Suspense>`. Pages themselves wait for their data and arrive whole (`instant = false` in the root layout). Search lives on the Players page. Section pages arrive with their roadmap slices.
+Header (wordmark, sections, account corner) and footer, applied in the root layout. On narrow screens the sections collapse into a menu. The account corner (sign-in button, or the player's menu) and the current-section highlight depend on the request, so each sits in `<Suspense>` and every page's shell stays static. Search lives on the Players page. Section pages arrive with their roadmap slices.
 
 ## Screenshot tests
 `npm run test:ui` (part of `just check`) screenshots `/dev/ui` wide, on a phone, with the menu open and with the dialog open, and fails on any pixel change. After an intended visual change:
