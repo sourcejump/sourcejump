@@ -1,6 +1,7 @@
 // One server on the Servers page: its country's flag, map, hostname, address, players and a Join link, which
 // phones leave out because they can't open it. Staff rows add badges and tools, and show unlisted servers dimmed
 // with a dashed edge.
+import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Schemas } from "@/api/client";
 import { MapImage } from "@/features/maps/MapImage";
@@ -58,6 +59,17 @@ export function ServerRow({
             <span className="font-bold break-words sm:truncate">
               {server.hostname}
             </span>
+            {/* Phones have no room for the word, so the badge shrinks to a tick beside the name. */}
+            {server.connected && (
+              <Badge
+                tone="accent"
+                title="Runs on this server count on SourceJump"
+                className="shrink-0 px-1 sm:hidden"
+              >
+                <Check aria-hidden />
+                <span className="sr-only">Connected</span>
+              </Badge>
+            )}
           </span>
           {server.connected && (
             <Badge
@@ -71,21 +83,24 @@ export function ServerRow({
           {badges}
         </span>
         <span className="text-text-muted flex flex-col items-start text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3">
-          <span className="flex w-full items-center justify-between gap-3 sm:contents">
-            {server.map_has_page ? (
-              <Link href={`/maps/${server.map}`} className="hover:text-accent">
-                {server.map}
-              </Link>
-            ) : (
-              <span>{server.map}</span>
-            )}
-            <span className="sm:hidden">{status}</span>
-          </span>
+          {server.map_has_page ? (
+            <Link href={`/maps/${server.map}`} className="hover:text-accent">
+              {server.map}
+            </Link>
+          ) : (
+            <span>{server.map}</span>
+          )}
           <span
             aria-hidden
             className="bg-border-strong hidden h-3.5 w-px sm:block"
           />
-          <ServerAddress address={address} />
+          {/* A long "Last seen" doesn't fit beside the address on a phone, so it wraps to the row's bottom right. */}
+          <span className="flex w-full flex-wrap items-center justify-between gap-x-3 sm:contents">
+            <ServerAddress address={address} />
+            <span className="ml-auto whitespace-nowrap sm:hidden">
+              {status}
+            </span>
+          </span>
         </span>
       </span>
       {/* With staff tools there's no room beside the name on a phone, so they take a line of their own. */}
