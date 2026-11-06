@@ -1,5 +1,6 @@
-// One server on the Servers page: its country's flag, map, hostname, address, players and a Join link. Staff
-// rows add badges and tools, and show unlisted servers dimmed with a dashed edge.
+// One server on the Servers page: its country's flag, map, hostname, address, players and a Join link, which
+// phones leave out because they can't open it. Staff rows add badges and tools, and show unlisted servers dimmed
+// with a dashed edge.
 import type { ReactNode } from "react";
 import type { Schemas } from "@/api/client";
 import { MapImage } from "@/features/maps/MapImage";
@@ -30,34 +31,56 @@ export function ServerRow({
     "transition-opacity duration-(--duration-base)",
     unlisted ? "opacity-50" : !server.online && "opacity-60",
   );
+  const status = server.online ? (
+    <span className="flex items-center gap-2 text-sm tabular-nums">
+      <span aria-hidden className="bg-success size-2 rounded-full" />
+      <span>
+        <span className="font-bold">{server.players}</span>
+        <span className="text-text-muted">/{server.max_slots}</span>
+      </span>
+    </span>
+  ) : (
+    <span className="text-text-muted text-sm">
+      Last seen{" "}
+      <time dateTime={server.last_seen_at}>
+        {formatAgo(server.seen_minutes_ago)}
+      </time>
+    </span>
+  );
   return (
     <ServerRowFrame unlisted={unlisted}>
       <MapImage image={server.map_image} size="thumbnail" className={dim} />
       <span className={classNames("flex min-w-0 flex-1 flex-col gap-1", dim)}>
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
-          {/* Only a known country: Flag's placeholder speaks of Steam, which a server has nothing to do with. */}
-          {server.country_code && <Flag code={server.country_code} />}
-          <span className="font-bold break-words sm:truncate">
-            {server.hostname}
+          <span className="flex min-w-0 items-center gap-2 sm:contents">
+            {/* Only a known country: Flag's placeholder speaks of Steam, which a server has nothing to do with. */}
+            {server.country_code && <Flag code={server.country_code} />}
+            <span className="font-bold break-words sm:truncate">
+              {server.hostname}
+            </span>
           </span>
           {server.connected && (
             <Badge
               tone="accent"
               title="Runs on this server count on SourceJump"
+              className="max-sm:hidden"
             >
               Connected
             </Badge>
           )}
           {badges}
         </span>
-        <span className="text-text-muted flex flex-wrap items-center gap-x-3 text-sm">
-          {server.map_has_page ? (
-            <Link href={`/maps/${server.map}`} className="hover:text-accent">
-              {server.map}
-            </Link>
-          ) : (
-            <span>{server.map}</span>
-          )}
+        <span className="text-text-muted flex flex-col items-start text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3">
+          <span className="flex w-full items-center justify-between gap-3 sm:contents">
+            {server.map_has_page ? (
+              <Link href={`/maps/${server.map}`} className="hover:text-accent">
+                {server.map}
+              </Link>
+            ) : (
+              <span>{server.map}</span>
+            )}
+            <span className="sm:hidden">{status}</span>
+          </span>
           <span
             aria-hidden
             className="bg-border-strong hidden h-3.5 w-px sm:block"
@@ -69,26 +92,13 @@ export function ServerRow({
       <span
         className={classNames(
           "flex items-center gap-4",
-          tools != null && "w-full justify-end sm:w-auto",
+          tools != null ? "w-full justify-end sm:w-auto" : "max-sm:hidden",
         )}
       >
-        <span className={classNames("flex items-center gap-4", dim)}>
-          {server.online ? (
-            <span className="flex items-center gap-2 text-sm tabular-nums">
-              <span aria-hidden className="bg-success size-2 rounded-full" />
-              <span>
-                <span className="font-bold">{server.players}</span>
-                <span className="text-text-muted">/{server.max_slots}</span>
-              </span>
-            </span>
-          ) : (
-            <span className="text-text-muted text-sm">
-              Last seen{" "}
-              <time dateTime={server.last_seen_at}>
-                {formatAgo(server.seen_minutes_ago)}
-              </time>
-            </span>
-          )}
+        <span
+          className={classNames("flex items-center gap-4 max-sm:hidden", dim)}
+        >
+          {status}
           {server.online && (
             <a
               href={`steam://connect/${address}`}
