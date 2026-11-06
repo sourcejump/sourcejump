@@ -29,7 +29,7 @@ One visual language that every page is built from, so pages can't drift apart. S
 | `Medal` | Placement; medals for 1–3, a plain number after |
 | `TierBadge` | `tier` and `tierCount` from the API |
 | `Avatar` | Steam avatar or initials; `sm` to `xl` |
-| `Flag` | Country flag from an ISO code (flag-icons, 4:3): `md` in rows, `lg` beside a title. A grey placeholder without one; `hint` replaces its tooltip |
+| `Flag` | Country flag from an ISO code, a grey placeholder without one; `hint` replaces its tooltip |
 | `Table` + `TableHead`/`TableBody`/`TableRow`/`TableHeaderCell`/`TableCell` | Leaderboards and staff lists; `numeric` cells right-align, `wrap` cells let long names wrap. Scrolls sideways inside its frame when too wide |
 | `Tabs` | Panels on one page; `underline` or `segmented` |
 | `LinkTabs` | Looks like `Tabs`, but each tab is a link: a view the server renders, such as the Maps page's sort |
