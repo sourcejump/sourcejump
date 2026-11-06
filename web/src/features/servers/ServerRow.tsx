@@ -28,7 +28,7 @@ export function ServerRow({
   badges?: ReactNode;
   /** Staff controls after Join, kept at full strength when the row is dimmed. */
   tools?: ReactNode;
-  /** Load the map's picture at once rather than when scrolled near: for the first rows, on screen from the start. */
+  /** Load the map's picture at once and first, not when scrolled near: for the rows on screen from the start. */
   eager?: boolean;
 }) {
   const address = `${server.ip}:${server.port}`;
@@ -41,12 +41,22 @@ export function ServerRow({
   return (
     <ServerRowFrame
       unlisted={unlisted}
-      className="flex flex-col sm:h-full sm:flex-row sm:items-center sm:gap-3 sm:p-3"
+      className="relative flex flex-col sm:h-full sm:flex-row sm:items-center sm:gap-3 sm:p-3"
     >
+      {/* Whether the server is up, down the box's left edge: green while it reports in, red once it has gone
+          quiet. Left at full strength when the rest of a row is dimmed, since it's the row's status. */}
+      <span
+        className={classNames(
+          "absolute inset-y-0 left-0 z-10 w-1",
+          server.online ? "bg-success" : "bg-danger",
+        )}
+      >
+        <span className="sr-only">{server.online ? "Online" : "Offline"}</span>
+      </span>
       <span
         className={classNames(
           "border-border bg-surface-raised relative flex h-28 shrink-0 items-end justify-between gap-3 overflow-hidden border-b p-3",
-          "sm:h-18 sm:w-32 sm:rounded-md sm:border sm:p-0",
+          "sm:h-18 sm:w-32 sm:rounded-sm sm:border sm:p-0",
           dim,
         )}
       >
@@ -109,7 +119,9 @@ export function ServerRow({
       </span>
       <span
         className={classNames(
-          "flex shrink-0 flex-col items-end justify-center gap-2 self-stretch max-sm:hidden",
+          // Only as wide as Join, so it sits as far in from the right edge as the picture does from the left, with
+          // the count just above it.
+          "flex shrink-0 flex-col items-center justify-center gap-1 max-sm:hidden",
           dim,
         )}
       >
@@ -117,7 +129,11 @@ export function ServerRow({
         {server.online && (
           <a
             href={`steam://connect/${address}`}
-            className={buttonClasses({ size: "sm" })}
+            className={classNames(
+              buttonClasses({ variant: "soft", size: "xs" }),
+              // One width on every row, so Join lines up down the list whatever the count above it.
+              "w-14",
+            )}
           >
             Join
           </a>
@@ -160,6 +176,9 @@ function MapPicture({
       src={image.thumbnail_url}
       alt=""
       loading={eager ? "eager" : "lazy"}
+      // The first rows' pictures are on screen at once, the biggest thing there on a phone: fetch them ahead of
+      // anything that can wait.
+      fetchPriority={eager ? "high" : "auto"}
       className="absolute inset-0 size-full object-cover"
     />
   );
@@ -168,7 +187,7 @@ function MapPicture({
 /** A label over the map's picture, see-through and blurring what's behind it so it reads on any picture. */
 function OnPicture({ children }: { children: ReactNode }) {
   return (
-    <span className="bg-bg/60 ring-border-strong/60 flex min-w-0 rounded-md px-2.5 py-1 text-sm ring-1 backdrop-blur-md">
+    <span className="bg-bg/60 ring-border-strong/60 flex min-w-0 rounded-sm px-2.5 py-1 text-sm ring-1 backdrop-blur-md">
       {children}
     </span>
   );
@@ -203,7 +222,7 @@ function Players({
       <span
         className={classNames(
           "text-text-muted text-sm whitespace-nowrap",
-          stacked && "flex flex-col items-end text-xs",
+          stacked && "flex flex-col items-center text-center text-xs",
         )}
       >
         <span>Last seen</span>{" "}
@@ -214,13 +233,20 @@ function Players({
     );
   }
   return (
-    <span className="flex items-center gap-2 whitespace-nowrap tabular-nums">
-      <span aria-hidden className="bg-success size-2 rounded-full" />
+    <span className="flex items-center whitespace-nowrap tabular-nums">
       <span className="text-sm">
-        <span className={classNames("font-bold", stacked && "text-base")}>
-          {server.players}
+        {/* All bold, so the players and the slots share one height and baseline; only the players are coloured,
+            green with someone on, red when it's empty. A hair of space either side of the slash keeps a wide 0
+            from crowding it the way a narrow 1 doesn't. */}
+        <span className="font-bold">
+          <span className={server.players > 0 ? "text-success" : "text-danger"}>
+            {server.players}
+          </span>
+          <span className="text-text-muted">
+            <span className="mx-px">/</span>
+            {server.max_slots}
+          </span>
         </span>
-        <span className="text-text-muted">/{server.max_slots}</span>
         {/* Left out on a narrow card, where it would cut the map's name short. */}
         {!stacked && (
           <span className="text-text-muted @max-xs:hidden"> playing</span>
@@ -246,7 +272,7 @@ export function ServerRowFrame({
   return (
     <div
       className={classNames(
-        "border-border bg-surface @container overflow-hidden rounded-lg border sm:rounded-md",
+        "border-border bg-surface @container overflow-hidden rounded-lg border",
         unlisted && "border-dashed",
         className,
       )}

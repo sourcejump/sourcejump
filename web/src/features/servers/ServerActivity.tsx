@@ -5,6 +5,7 @@
 import { type ReactNode, useState } from "react";
 import type { Schemas } from "@/api/client";
 import { Card } from "@/ui/Card";
+import { classNames } from "@/ui/classNames";
 import { LineChart } from "@/ui/LineChart";
 import { Segmented } from "@/ui/Segmented";
 
@@ -16,13 +17,6 @@ const ranges: { value: Range; label: string }[] = [
   { value: "month", label: "1 month" },
   { value: "year", label: "1 year" },
 ];
-
-const peakLabels: Record<Range, string> = {
-  day: "24-hour peak",
-  week: "7-day peak",
-  month: "1-month peak",
-  year: "1-year peak",
-};
 
 // UTC, like every date on the site, so the server and the visitor render the same text.
 const time = new Intl.DateTimeFormat("en", {
@@ -58,40 +52,49 @@ export function ServerActivity({
 
   return (
     <Card className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 max-sm:justify-center">
         {/* While the chart is hovered, its point replaces the line; the chart has no tooltip of its own. */}
         <p
           aria-live="polite"
-          className="text-text-muted flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm tabular-nums"
+          className="text-text-muted flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm tabular-nums max-sm:justify-center"
         >
+          {/* One size throughout, like a sentence: bold numbers, quiet words, dots between. */}
           {hovered ? (
             <>
               <Stat value={hovered.players}>
                 {hovered.players === 1 ? "player" : "players"}
                 {range !== "day" && " on average"}
               </Stat>
+              <Dot />
               <Stat value={hovered.servers}>
                 {hovered.servers === 1 ? "server" : "servers"}
               </Stat>
+              <Dot />
               <span className="text-text-subtle">
                 {when(hovered.at, current.bucket_minutes)}
               </span>
             </>
           ) : (
             <>
-              <Stat value={now.players}>online now</Stat>
+              {/* Coloured like a server's player count: green with anyone on, red when nobody is. */}
+              <Stat
+                value={now.players}
+                tone={now.players > 0 ? "text-success" : "text-danger"}
+              >
+                online now
+              </Stat>
+              <Dot />
               <Stat value={now.servers}>
                 {now.servers === 1 ? "server" : "servers"}
               </Stat>
-              <span>
-                {peakLabels[range]}{" "}
-                <span className="text-text text-lg font-bold">{peak}</span>
-              </span>
+              <Dot />
+              <Stat value={peak}>peak in {rangeLabel(range)}</Stat>
             </>
           )}
         </p>
         <Segmented
           label="Range"
+          fillOnPhones
           options={ranges}
           value={range}
           onChange={(value) => {
@@ -104,14 +107,14 @@ export function ServerActivity({
       <div className="flex flex-col gap-1">
         <LineChart
           size="sm"
-          label={`Players online over the last ${ranges.find((r) => r.value === range)?.label}. Use the arrow keys to read each point.`}
+          label={`Players online over the last ${rangeLabel(range)}. Use the arrow keys to read each point.`}
           points={points.map((p) => ({ x: Date.parse(p.at), y: p.players }))}
           active={active}
           onActive={setActive}
           formatValue={(value) => String(Math.round(value))}
         />
-        {/* Indented by the value labels' width, so the dates sit under the plot's ends. */}
-        <div className="text-text-subtle flex justify-between pl-10 text-xs tabular-nums">
+        {/* Indented by the value labels' width, so the dates sit under the plot's ends; a phone has the labels inside. */}
+        <div className="text-text-subtle flex justify-between pl-10 text-xs tabular-nums max-sm:pl-0">
           <span>{edge(points[0]?.at, range)}</span>
           <span>{edge(points.at(-1)?.at, range)}</span>
         </div>
@@ -120,13 +123,34 @@ export function ServerActivity({
   );
 }
 
-/** A number in the line over the chart, with what it counts after it. */
-function Stat({ value, children }: { value: number; children: ReactNode }) {
+/** A figure in the line over the chart: the number, then what it counts. */
+function Stat({
+  value,
+  tone = "text-text",
+  children,
+}: {
+  value: number;
+  /** The number's color class. */
+  tone?: string;
+  children: ReactNode;
+}) {
   return (
     <span>
-      <span className="text-text text-lg font-bold">{value}</span> {children}
+      <span className={classNames("font-bold", tone)}>{value}</span> {children}
     </span>
   );
+}
+
+function Dot() {
+  return (
+    <span aria-hidden className="text-text-subtle">
+      ·
+    </span>
+  );
+}
+
+function rangeLabel(range: Range): string {
+  return ranges.find((r) => r.value === range)?.label ?? "";
 }
 
 /** The bucket a point covers: a time span within a day, or the whole day. */

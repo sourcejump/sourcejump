@@ -22,7 +22,7 @@ One visual language that every page is built from, so pages can't drift apart. S
 |---|---|
 | `Page` | Every page's content area; `width` is `wide`, `narrow` (reading) or `fill` (inside a section layout that sets its own width, such as the staff area). Runs the page fade |
 | `Link` | Every internal link; never prefetches. Lint blocks importing `next/link` elsewhere |
-| `Button`, `ButtonLink`, `ButtonAnchor` | `primary` (one per view), `secondary` (default), `ghost`; sizes `sm`, `md`. A `ghost` button with `aria-pressed` or `aria-expanded` shows the accent while on. `ButtonAnchor` is for full page loads, such as sign-in |
+| `Button`, `ButtonLink`, `ButtonAnchor` | `primary` (one per view), `secondary` (default), `soft` (a list's repeated action), `ghost`; sizes `xs` (rows), `sm`, `md`. A `ghost` button with `aria-pressed` or `aria-expanded` shows the accent while on. `ButtonAnchor` is for full page loads, such as sign-in |
 | `Card`, `Label` | Bordered surface; `interactive` adds the hover lift. `Label` is the small uppercase heading |
 | `StatCard` | Headline number with label and icon, counting up, and an optional short detail beside the number (never under it, so cards in a row stay one height). `null` shows a dash |
 | `Badge` | Short status: `neutral`, `accent` (WR), `success`, `warning`, `danger` |
@@ -33,13 +33,13 @@ One visual language that every page is built from, so pages can't drift apart. S
 | `Table` + `TableHead`/`TableBody`/`TableRow`/`TableHeaderCell`/`TableCell` | Leaderboards and staff lists; `numeric` cells right-align, `wrap` cells let long names wrap. Scrolls sideways inside its frame when too wide |
 | `Tabs` | Panels on one page; `underline` or `segmented` |
 | `LinkTabs` | Looks like `Tabs`, but each tab is a link: a view the server renders, such as the Maps page's sort |
-| `Segmented` | Looks like segmented `Tabs`, for a choice that changes the view in place (a server's activity range, a post's kind). The chosen option is in the accent |
+| `Segmented` | Looks like segmented `Tabs`, for a choice that changes the view in place (a server's activity range, a post's kind). The chosen option is in the accent; `fillOnPhones` spans phones |
 | `ChoiceMenu` | "Label  Value ▾": one choice from a list, in a `Menu` of radio items, changing the view in place, or following each option's `href` on a server page. Boards, profiles and the Maps page use a row of them (Style, Track, Runs; Sort, Records in; lead, 2026-10-26); quiet options are dimmed but choosable, disabled ones dimmed and kept in place. On a phone each takes a full row, label left and value right |
 | `ChoiceBar` | The row those menus sit in, with any tabs beside them. Every page uses it, so the spacing between choices stays the same everywhere |
 | `Pager` | Previous and next under a paged list |
 | `DividedList`, `DividedSection` | Rows with lines between them, and a part set off by a line above, inside a `Card` or `Dialog`. The lines run to the surface's edges |
 | `StepChart` | A value that changes in steps over time (WR history). Hover snaps a crosshair to the nearest point; points take focus and open their link |
-| `LineChart` | One count over time from zero (players online). Drawn in a fixed box stretched by CSS, so it fills its container before scripts load. Hover, tap or arrow keys pick a point; the parent shows its values. An optional second line (`y2`, gold) shows a part of the first on the same scale (world records among runs). Never two scales on one chart. `size="sm"` is shorter |
+| `LineChart` | One count over time from zero (players online). Drawn in a fixed box stretched by CSS, so it fills its container before scripts load. Hover, tap or arrow keys pick a point; the parent shows its values. An optional second line (`y2`, gold) shows a part of the first on the same scale (world records among runs). Never two scales on one chart. `size="sm"`: shorter; phones get the top value only |
 | `TierSpread` | How many maps hold each tier: a donut in tier colors beside each tier's count and share; each slice and row links to that tier's maps, the others dim, and "All" closes the list (Maps page) |
 | `Tooltip` | Hint on hover and focus; the child must be focusable |
 | `Menu`, `MenuItem`, `MenuLink`, `MenuSeparator` | Menu button (account, mobile sections) |

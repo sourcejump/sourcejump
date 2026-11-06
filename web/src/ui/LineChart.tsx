@@ -35,7 +35,10 @@ export function LineChart({
   formatValue: (value: number) => string;
   /** Read out for the chart, since it's a picture. */
   label: string;
-  /** `sm` is a shorter chart, for beside a summary rather than under it. */
+  /**
+   * `sm` is a shorter chart, for beside a summary rather than under it. On a phone it drops the column of value
+   * labels for the top value alone, above its gridline, so the line gets the card's whole width.
+   */
   size?: "sm" | "md";
 }) {
   if (points.length < 2) return null;
@@ -85,7 +88,10 @@ export function LineChart({
     >
       <div
         aria-hidden
-        className="text-text-subtle relative w-8 shrink-0 text-right text-xs tabular-nums"
+        className={classNames(
+          "text-text-subtle relative w-8 shrink-0 text-right text-xs tabular-nums",
+          size === "sm" && "max-sm:hidden",
+        )}
       >
         {ticks.map((tick) => (
           <span
@@ -109,6 +115,16 @@ export function LineChart({
         onBlur={() => onActive(null)}
         onKeyDown={onKeyDown}
       >
+        {size === "sm" && (
+          // Only the top value: it sits above the top gridline, where the line never reaches, so it gives the
+          // scale without running into the line the way the lower ones would.
+          <span
+            aria-hidden
+            className="text-text-subtle pointer-events-none absolute top-0 left-0 -translate-y-full text-xs tabular-nums sm:hidden"
+          >
+            {formatValue(top)}
+          </span>
+        )}
         <svg
           viewBox={`0 0 ${W} ${H}`}
           preserveAspectRatio="none"
