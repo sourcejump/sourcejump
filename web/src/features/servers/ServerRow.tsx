@@ -58,6 +58,10 @@ export function ServerRow({
           ) : (
             <span>{server.map}</span>
           )}
+          <span
+            aria-hidden
+            className="bg-border-strong hidden h-3.5 w-px sm:block"
+          />
           <ServerAddress address={address} />
         </span>
       </span>

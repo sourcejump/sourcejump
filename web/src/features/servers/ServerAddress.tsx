@@ -21,7 +21,7 @@ export function ServerAddress({ address }: { address: string }) {
       type="button"
       onClick={copy}
       aria-label={`Copy "connect ${address}"`}
-      className="text-text-muted hover:text-text inline-flex items-center gap-1.5 text-sm tabular-nums transition-colors duration-(--duration-fast)"
+      className="text-text-muted hover:text-text inline-flex items-center gap-2.5 text-sm tabular-nums transition-colors duration-(--duration-fast)"
     >
       {address}
       {copied ? (
