@@ -5,9 +5,8 @@ import { NavigationPending } from "./NavigationProgress";
 
 /**
  * Next.js preloads a link's page when the link scrolls into view or is hovered. The lead chose to
- * load a page only when it's actually opened, so prefetching is off here; the progress bar and the page
- * fade cover the wait. Lint stops other files importing next/link, so this default can't be bypassed by
- * accident.
+ * load a page only when it's actually opened, so prefetching is off here; the progress bar covers the
+ * wait. Lint stops other files importing next/link, so this default can't be bypassed by accident.
  */
 export function Link({ children, ...props }: ComponentProps<typeof NextLink>) {
   return (

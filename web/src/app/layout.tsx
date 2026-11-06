@@ -20,9 +20,7 @@ export const metadata: Metadata = {
     "Global records for the Counter-Strike: Source bunnyhop community.",
 };
 
-// Every page waits for its data and arrives whole, rather than showing its heading and filling in: following a
-// link keeps the old page, with the progress bar running, until the new one is complete. This lets every
-// route block (Next would otherwise expect each to show a static shell at once).
+// Pages wait for their data and arrive whole; the progress bar covers the wait.
 export const instant = false;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

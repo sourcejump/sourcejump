@@ -211,8 +211,7 @@
   animation: none;
 }
 
-/* The navigation progress bar keeps drawing, live and above the header, while the pages fade beneath it;
-   otherwise the header's layer would cover it for the whole fade, hiding it as it fills. */
+/* The navigation progress bar stays live and above the header while pages fade. */
 ::view-transition-group(navigation-progress) {
   animation: none;
   z-index: 20;
