@@ -80,7 +80,7 @@ function View({
 }: {
   whitelist: boolean;
   hasWhitelist: boolean;
-  /** Two rows side by side where they fit; staff rows, with their badges and tools, need the whole width. */
+  /** Staff rows need the whole width for their tools. */
   pairs?: boolean;
   rows: { address: string; row: ReactNode }[];
 }) {
@@ -128,8 +128,6 @@ function Rows({
       <ul
         className={classNames(
           "grid gap-2",
-          // Phone cards pair up once two fit (the list's own width, from 512px), until wider screens switch to
-          // rows, which pair up from 1024px.
           pairs && "lg:grid-cols-2 @lg:max-sm:grid-cols-2",
         )}
       >

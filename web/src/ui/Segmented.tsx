@@ -22,7 +22,7 @@ export function Segmented({
   onChange: (value: string) => void;
   /** Names the group for screen readers. */
   label: string;
-  /** On a phone, spans its container with the options sharing the width, to line up with what's under it. */
+  /** On a phone, spans its container with the options sharing the width. */
   fillOnPhones?: boolean;
   className?: string;
 }) {

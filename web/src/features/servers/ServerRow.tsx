@@ -1,7 +1,4 @@
-// One server on the Servers page: a picture of its map, its country's flag, hostname, address, players and a
-// Join link, which phones leave out because they can't open it. On phones it's a card under a banner of the map,
-// with the map's name and the players on it; wider, a compact row with the map as a thumbnail. Staff rows add
-// badges and tools, and show unlisted servers dimmed with a dashed edge.
+// One server on the Servers page: a card on phones, a compact row wider. Staff rows add badges and tools.
 import { Check, ImageOff } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Schemas } from "@/api/client";
@@ -28,7 +25,7 @@ export function ServerRow({
   badges?: ReactNode;
   /** Staff controls after Join, kept at full strength when the row is dimmed. */
   tools?: ReactNode;
-  /** Load the map's picture at once and first, not when scrolled near: for the rows on screen from the start. */
+  /** For the first rows, on screen from the start. */
   eager?: boolean;
 }) {
   const address = `${server.ip}:${server.port}`;
@@ -43,8 +40,6 @@ export function ServerRow({
       unlisted={unlisted}
       className="relative flex flex-col sm:h-full sm:flex-row sm:items-center sm:gap-3 sm:p-3"
     >
-      {/* Whether the server is up, down the box's left edge: green while it reports in, red once it has gone
-          quiet. Left at full strength when the rest of a row is dimmed, since it's the row's status. */}
       <span
         className={classNames(
           "absolute inset-y-0 left-0 z-10 w-1",
@@ -61,7 +56,6 @@ export function ServerRow({
         )}
       >
         <MapPicture image={server.map_image} eager={eager} />
-        {/* On phones the map's name and the players sit on the picture; wider, they have columns of their own. */}
         <span className="relative min-w-0 sm:hidden">
           <OnPicture>
             <MapName server={server} />
@@ -79,7 +73,6 @@ export function ServerRow({
           dim,
         )}
       >
-        {/* Badges that don't fit beside the name wrap under it rather than squeezing it. */}
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <span className="flex min-w-0 items-center gap-2">
             {/* Only a known country: Flag's placeholder speaks of Steam, which a server has nothing to do with. */}
@@ -88,7 +81,6 @@ export function ServerRow({
               {server.hostname}
             </span>
             {server.connected && (
-              // Phones have no room for the word, so the badge shrinks to a tick.
               <Badge
                 tone="accent"
                 title={connected}
@@ -119,8 +111,6 @@ export function ServerRow({
       </span>
       <span
         className={classNames(
-          // Only as wide as Join, so it sits as far in from the right edge as the picture does from the left, with
-          // the count just above it.
           "flex shrink-0 flex-col items-center justify-center gap-1 max-sm:hidden",
           dim,
         )}
@@ -131,7 +121,6 @@ export function ServerRow({
             href={`steam://connect/${address}`}
             className={classNames(
               buttonClasses({ variant: "soft", size: "xs" }),
-              // One width on every row, so Join lines up down the list whatever the count above it.
               "w-14",
             )}
           >
@@ -148,10 +137,7 @@ export function ServerRow({
   );
 }
 
-/**
- * The map's cover. Always the small file, the banner on a phone too: the large one is about ten times the bytes,
- * a lot for a list, and the map's own page shows it.
- */
+// Always the small file, even for a phone's banner: the large one is about ten times the size.
 function MapPicture({
   image,
   eager,
@@ -170,21 +156,17 @@ function MapPicture({
     );
   }
   return (
-    // The API stores each picture at the sizes it's shown at, so there's nothing for Next's resizer to do.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={image.thumbnail_url}
       alt=""
       loading={eager ? "eager" : "lazy"}
-      // The first rows' pictures are on screen at once, the biggest thing there on a phone: fetch them ahead of
-      // anything that can wait.
       fetchPriority={eager ? "high" : "auto"}
       className="absolute inset-0 size-full object-cover"
     />
   );
 }
 
-/** A label over the map's picture, see-through and blurring what's behind it so it reads on any picture. */
 function OnPicture({ children }: { children: ReactNode }) {
   return (
     <span className="bg-bg/60 ring-border-strong/60 flex min-w-0 rounded-sm px-2.5 py-1 text-sm ring-1 backdrop-blur-md">
@@ -206,10 +188,7 @@ function MapName({ server }: { server: Server }) {
   );
 }
 
-/**
- * Players out of slots while online, else when it was last heard from. `stacked` is the wider row's column,
- * where "Last seen" takes two short lines.
- */
+/** `stacked` is the wider row's column. */
 function Players({
   server,
   stacked = false,
@@ -235,9 +214,6 @@ function Players({
   return (
     <span className="flex items-center whitespace-nowrap tabular-nums">
       <span className="text-sm">
-        {/* All bold, so the players and the slots share one height and baseline; only the players are coloured,
-            green with someone on, red when it's empty. A hair of space either side of the slash keeps a wide 0
-            from crowding it the way a narrow 1 doesn't. */}
         <span className="font-bold">
           <span className={server.players > 0 ? "text-success" : "text-danger"}>
             {server.players}
@@ -247,7 +223,6 @@ function Players({
             {server.max_slots}
           </span>
         </span>
-        {/* Left out on a narrow card, where it would cut the map's name short. */}
         {!stacked && (
           <span className="text-text-muted @max-xs:hidden"> playing</span>
         )}
@@ -256,10 +231,7 @@ function Players({
   );
 }
 
-/**
- * The row's box, shared with the staff-only row of a server listed before it was ever heard from; `className`
- * lays out what's inside.
- */
+/** The row's box, shared with the staff-only row of a server listed before it was ever heard from. */
 export function ServerRowFrame({
   unlisted = false,
   className,

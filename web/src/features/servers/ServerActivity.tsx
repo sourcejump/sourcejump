@@ -44,7 +44,7 @@ export function ServerActivity({
   const [active, setActive] = useState<number | null>(null);
   const current = activity[range];
   const points = current?.points ?? [];
-  // "Now" is the day's latest bucket whichever range is shown: the longer ranges' buckets are averages.
+  // The longer ranges' buckets are averages, so "now" always comes from the day's.
   const now = activity.day?.points.at(-1) ?? points.at(-1);
   const hovered = active === null ? undefined : points[active];
   if (!current || !now || points.length < 2) return null;
@@ -53,12 +53,10 @@ export function ServerActivity({
   return (
     <Card className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3 max-sm:justify-center">
-        {/* While the chart is hovered, its point replaces the line; the chart has no tooltip of its own. */}
         <p
           aria-live="polite"
           className="text-text-muted flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm tabular-nums max-sm:justify-center"
         >
-          {/* One size throughout, like a sentence: bold numbers, quiet words, dots between. */}
           {hovered ? (
             <>
               <Stat value={hovered.players}>
@@ -76,7 +74,6 @@ export function ServerActivity({
             </>
           ) : (
             <>
-              {/* Coloured like a server's player count: green with anyone on, red when nobody is. */}
               <Stat
                 value={now.players}
                 tone={now.players > 0 ? "text-success" : "text-danger"}
@@ -113,7 +110,7 @@ export function ServerActivity({
           onActive={setActive}
           formatValue={(value) => String(Math.round(value))}
         />
-        {/* Indented by the value labels' width, so the dates sit under the plot's ends; a phone has the labels inside. */}
+        {/* Indented by the value labels' width, so the dates sit under the plot's ends. */}
         <div className="text-text-subtle flex justify-between pl-10 text-xs tabular-nums max-sm:pl-0">
           <span>{edge(points[0]?.at, range)}</span>
           <span>{edge(points.at(-1)?.at, range)}</span>
@@ -123,14 +120,12 @@ export function ServerActivity({
   );
 }
 
-/** A figure in the line over the chart: the number, then what it counts. */
 function Stat({
   value,
   tone = "text-text",
   children,
 }: {
   value: number;
-  /** The number's color class. */
   tone?: string;
   children: ReactNode;
 }) {

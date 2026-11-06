@@ -35,10 +35,7 @@ export function LineChart({
   formatValue: (value: number) => string;
   /** Read out for the chart, since it's a picture. */
   label: string;
-  /**
-   * `sm` is a shorter chart, for beside a summary rather than under it. On a phone it drops the column of value
-   * labels for the top value alone, above its gridline, so the line gets the card's whole width.
-   */
+  /** `sm` is shorter, and on a phone shows only the top value so the line spans the card. */
   size?: "sm" | "md";
 }) {
   if (points.length < 2) return null;
@@ -116,8 +113,6 @@ export function LineChart({
         onKeyDown={onKeyDown}
       >
         {size === "sm" && (
-          // Only the top value: it sits above the top gridline, where the line never reaches, so it gives the
-          // scale without running into the line the way the lower ones would.
           <span
             aria-hidden
             className="text-text-subtle pointer-events-none absolute top-0 left-0 -translate-y-full text-xs tabular-nums sm:hidden"
