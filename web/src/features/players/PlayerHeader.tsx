@@ -43,7 +43,7 @@ export async function PlayerHeader({ steamid }: { steamid: string }) {
           <h1 className="text-3xl font-bold">{player.name}</h1>
           <Flag
             code={player.country_code}
-            className="text-xl"
+            className="h-5.25 w-7"
             hint={
               isOwn && !player.country_code
                 ? "Your Steam profile has no country. Pick one in your details below, or set one on Steam and it shows here after your next sign-in."

@@ -22,6 +22,7 @@ export function Flag({
   const label = valid
     ? (countryNames.of(valid) ?? valid)
     : "No country set on Steam";
+  // Not flag-icons' base `fi` class: it sizes the box in em and fits the art inside it, which leaves gaps.
   const flag = valid ? (
     <span
       role="img"
@@ -29,7 +30,7 @@ export function Flag({
       title={hint ? undefined : label}
       tabIndex={hint ? 0 : undefined}
       className={classNames(
-        `fi fi-${valid.toLowerCase()} shrink-0 rounded-sm shadow-[0_0_0_1px_var(--color-border-strong)]`,
+        `fi-${valid.toLowerCase()} inline-block h-3.75 w-5 shrink-0 rounded-sm bg-cover bg-center align-middle shadow-[0_0_0_1px_var(--color-border-strong)]`,
         className,
       )}
     />
@@ -41,7 +42,7 @@ export function Flag({
       title={hint ? undefined : label}
       tabIndex={hint ? 0 : undefined}
       className={classNames(
-        "bg-surface-raised text-text-subtle inline-flex h-[1em] w-[1.333em] shrink-0 items-center justify-center rounded-sm align-middle shadow-[0_0_0_1px_var(--color-border-strong)]",
+        "bg-surface-raised text-text-subtle inline-flex h-3.75 w-5 shrink-0 items-center justify-center rounded-sm align-middle shadow-[0_0_0_1px_var(--color-border-strong)]",
         className,
       )}
     >
