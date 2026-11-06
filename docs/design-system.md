@@ -39,7 +39,7 @@ One visual language that every page is built from, so pages can't drift apart. S
 | `Pager` | Previous and next under a paged list |
 | `DividedList`, `DividedSection` | Rows with lines between them, and a part set off by a line above, inside a `Card` or `Dialog`. The lines run to the surface's edges |
 | `StepChart` | A value that changes in steps over time (WR history). Hover snaps a crosshair to the nearest point; points take focus and open their link |
-| `LineChart` | One count over time from zero (players online). Drawn in a fixed box stretched by CSS, so it fills its container before scripts load. Hover, tap or arrow keys pick a point; the parent shows its values. An optional second line (`y2`, gold) shows a part of the first on the same scale (world records among runs). Never two scales on one chart |
+| `LineChart` | One count over time from zero (players online). Drawn in a fixed box stretched by CSS, so it fills its container before scripts load. Hover, tap or arrow keys pick a point; the parent shows its values. An optional second line (`y2`, gold) shows a part of the first on the same scale (world records among runs). Never two scales on one chart. `size="sm"` is shorter |
 | `TierSpread` | How many maps hold each tier: a donut in tier colors beside each tier's count and share; each slice and row links to that tier's maps, the others dim, and "All" closes the list (Maps page) |
 | `Tooltip` | Hint on hover and focus; the child must be focusable |
 | `Menu`, `MenuItem`, `MenuLink`, `MenuSeparator` | Menu button (account, mobile sections) |

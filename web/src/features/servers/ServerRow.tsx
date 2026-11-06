@@ -1,10 +1,10 @@
-// One server on the Servers page: its country's flag, map, hostname, address, players and a Join link, which
-// phones leave out because they can't open it. Staff rows add badges and tools, and show unlisted servers dimmed
-// with a dashed edge.
-import { Check } from "lucide-react";
+// One server on the Servers page: a picture of its map, its country's flag, hostname, address, players and a
+// Join link, which phones leave out because they can't open it. On phones it's a card under a banner of the map,
+// with the map's name and the players on it; wider, a compact row with the map as a thumbnail. Staff rows add
+// badges and tools, and show unlisted servers dimmed with a dashed edge.
+import { Check, ImageOff } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Schemas } from "@/api/client";
-import { MapImage } from "@/features/maps/MapImage";
 import { formatAgo } from "@/features/runs/time";
 import { Badge } from "@/ui/Badge";
 import { buttonClasses } from "@/ui/Button";
@@ -13,57 +13,75 @@ import { Flag } from "@/ui/Flag";
 import { Link } from "@/ui/Link";
 import { ServerAddress } from "./ServerAddress";
 
+type Server = Schemas["ListedServer"];
+
 export function ServerRow({
   server,
   unlisted = false,
   badges,
   tools,
+  eager = false,
 }: {
-  server: Schemas["ListedServer"];
+  server: Server;
   /** Shown to staff only: the public list never has unlisted servers. */
   unlisted?: boolean;
   badges?: ReactNode;
   /** Staff controls after Join, kept at full strength when the row is dimmed. */
   tools?: ReactNode;
+  /** Load the map's picture at once rather than when scrolled near: for the first rows, on screen from the start. */
+  eager?: boolean;
 }) {
   const address = `${server.ip}:${server.port}`;
-  // Each part is dimmed on its own, not inside one wrapper, so the row still wraps as one flex line on phones.
+  // Each part is dimmed on its own, not inside one wrapper, so the staff tools stay at full strength.
   const dim = classNames(
     "transition-opacity duration-(--duration-base)",
     unlisted ? "opacity-50" : !server.online && "opacity-60",
   );
-  const status = server.online ? (
-    <span className="flex items-center gap-2 text-sm tabular-nums">
-      <span aria-hidden className="bg-success size-2 rounded-full" />
-      <span>
-        <span className="font-bold">{server.players}</span>
-        <span className="text-text-muted">/{server.max_slots}</span>
-      </span>
-    </span>
-  ) : (
-    <span className="text-text-muted text-sm">
-      Last seen{" "}
-      <time dateTime={server.last_seen_at}>
-        {formatAgo(server.seen_minutes_ago)}
-      </time>
-    </span>
-  );
+  const connected = "Runs on this server count on SourceJump";
   return (
-    <ServerRowFrame unlisted={unlisted}>
-      <MapImage image={server.map_image} size="thumbnail" className={dim} />
-      <span className={classNames("flex min-w-0 flex-1 flex-col gap-1", dim)}>
-        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
-          <span className="flex min-w-0 items-center gap-2 sm:contents">
+    <ServerRowFrame
+      unlisted={unlisted}
+      className="flex flex-col sm:h-full sm:flex-row sm:items-center sm:gap-3 sm:p-3"
+    >
+      <span
+        className={classNames(
+          "border-border bg-surface-raised relative flex h-28 shrink-0 items-end justify-between gap-3 overflow-hidden border-b p-3",
+          "sm:h-18 sm:w-32 sm:rounded-md sm:border sm:p-0",
+          dim,
+        )}
+      >
+        <MapPicture image={server.map_image} eager={eager} />
+        {/* On phones the map's name and the players sit on the picture; wider, they have columns of their own. */}
+        <span className="relative min-w-0 sm:hidden">
+          <OnPicture>
+            <MapName server={server} />
+          </OnPicture>
+        </span>
+        <span className="relative shrink-0 sm:hidden">
+          <OnPicture>
+            <Players server={server} />
+          </OnPicture>
+        </span>
+      </span>
+      <span
+        className={classNames(
+          "flex min-w-0 flex-1 flex-col gap-0.5 p-3 sm:p-0",
+          dim,
+        )}
+      >
+        {/* Badges that don't fit beside the name wrap under it rather than squeezing it. */}
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="flex min-w-0 items-center gap-2">
             {/* Only a known country: Flag's placeholder speaks of Steam, which a server has nothing to do with. */}
             {server.country_code && <Flag code={server.country_code} />}
-            <span className="font-bold break-words sm:truncate">
+            <span className="min-w-0 font-bold break-words sm:truncate">
               {server.hostname}
             </span>
-            {/* Phones have no room for the word, so the badge shrinks to a tick beside the name. */}
             {server.connected && (
+              // Phones have no room for the word, so the badge shrinks to a tick.
               <Badge
                 tone="accent"
-                title="Runs on this server count on SourceJump"
+                title={connected}
                 className="shrink-0 px-1 sm:hidden"
               >
                 <Check aria-hidden />
@@ -74,74 +92,163 @@ export function ServerRow({
           {server.connected && (
             <Badge
               tone="accent"
-              title="Runs on this server count on SourceJump"
-              className="max-sm:hidden"
+              title={connected}
+              className="shrink-0 max-sm:hidden"
             >
               Connected
             </Badge>
           )}
           {badges}
         </span>
-        <span className="text-text-muted flex flex-col items-start text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3">
-          {server.map_has_page ? (
-            <Link href={`/maps/${server.map}`} className="hover:text-accent">
-              {server.map}
-            </Link>
-          ) : (
-            <span>{server.map}</span>
-          )}
-          <span
-            aria-hidden
-            className="bg-border-strong hidden h-3.5 w-px sm:block"
-          />
-          {/* A long "Last seen" doesn't fit beside the address on a phone, so it wraps to the row's bottom right. */}
-          <span className="flex w-full flex-wrap items-center justify-between gap-x-3 sm:contents">
-            <ServerAddress address={address} />
-            <span className="ml-auto whitespace-nowrap sm:hidden">
-              {status}
-            </span>
-          </span>
+        <span className="text-text-muted flex min-w-0 text-sm max-sm:hidden">
+          <MapName server={server} />
+        </span>
+        <span className="flex">
+          <ServerAddress address={address} />
         </span>
       </span>
-      {/* With staff tools there's no room beside the name on a phone, so they take a line of their own. */}
       <span
         className={classNames(
-          "flex items-center gap-4",
-          tools != null ? "w-full justify-end sm:w-auto" : "max-sm:hidden",
+          "flex shrink-0 flex-col items-end justify-center gap-2 self-stretch max-sm:hidden",
+          dim,
         )}
       >
-        <span
-          className={classNames("flex items-center gap-4 max-sm:hidden", dim)}
-        >
-          {status}
-          {server.online && (
-            <a
-              href={`steam://connect/${address}`}
-              className={buttonClasses({ size: "sm" })}
-            >
-              Join
-            </a>
-          )}
-        </span>
-        {tools && <span className="flex items-center gap-1">{tools}</span>}
+        <Players server={server} stacked />
+        {server.online && (
+          <a
+            href={`steam://connect/${address}`}
+            className={buttonClasses({ size: "sm" })}
+          >
+            Join
+          </a>
+        )}
       </span>
+      {tools && (
+        <span className="flex shrink-0 items-center justify-end gap-1 px-3 pb-3 sm:p-0">
+          {tools}
+        </span>
+      )}
     </ServerRowFrame>
   );
 }
 
-/** The row's box, shared with the staff-only row of a server listed before it was ever heard from. */
+/**
+ * The map's cover. Always the small file, the banner on a phone too: the large one is about ten times the bytes,
+ * a lot for a list, and the map's own page shows it.
+ */
+function MapPicture({
+  image,
+  eager,
+}: {
+  image: Server["map_image"];
+  eager: boolean;
+}) {
+  if (!image) {
+    return (
+      <span
+        aria-hidden
+        className="text-text-subtle absolute inset-0 flex items-center justify-center"
+      >
+        <ImageOff className="size-5" />
+      </span>
+    );
+  }
+  return (
+    // The API stores each picture at the sizes it's shown at, so there's nothing for Next's resizer to do.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={image.thumbnail_url}
+      alt=""
+      loading={eager ? "eager" : "lazy"}
+      className="absolute inset-0 size-full object-cover"
+    />
+  );
+}
+
+/** A label over the map's picture, see-through and blurring what's behind it so it reads on any picture. */
+function OnPicture({ children }: { children: ReactNode }) {
+  return (
+    <span className="bg-bg/60 ring-border-strong/60 flex min-w-0 rounded-md px-2.5 py-1 text-sm ring-1 backdrop-blur-md">
+      {children}
+    </span>
+  );
+}
+
+function MapName({ server }: { server: Server }) {
+  return server.map_has_page ? (
+    <Link
+      href={`/maps/${server.map}`}
+      className="hover:text-accent truncate font-bold transition-colors duration-(--duration-fast)"
+    >
+      {server.map}
+    </Link>
+  ) : (
+    <span className="truncate font-bold">{server.map}</span>
+  );
+}
+
+/**
+ * Players out of slots while online, else when it was last heard from. `stacked` is the wider row's column,
+ * where "Last seen" takes two short lines.
+ */
+function Players({
+  server,
+  stacked = false,
+}: {
+  server: Server;
+  stacked?: boolean;
+}) {
+  if (!server.online) {
+    return (
+      <span
+        className={classNames(
+          "text-text-muted text-sm whitespace-nowrap",
+          stacked && "flex flex-col items-end text-xs",
+        )}
+      >
+        <span>Last seen</span>{" "}
+        <time dateTime={server.last_seen_at}>
+          {formatAgo(server.seen_minutes_ago)}
+        </time>
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-2 whitespace-nowrap tabular-nums">
+      <span aria-hidden className="bg-success size-2 rounded-full" />
+      <span className="text-sm">
+        <span className={classNames("font-bold", stacked && "text-base")}>
+          {server.players}
+        </span>
+        <span className="text-text-muted">/{server.max_slots}</span>
+        {/* Left out on a narrow card, where it would cut the map's name short. */}
+        {!stacked && (
+          <span className="text-text-muted @max-xs:hidden"> playing</span>
+        )}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * The row's box, shared with the staff-only row of a server listed before it was ever heard from; `className`
+ * lays out what's inside.
+ */
 export function ServerRowFrame({
   unlisted = false,
+  className,
   children,
 }: {
   unlisted?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   return (
     <div
       className={classNames(
-        "border-border bg-surface flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border p-3 sm:flex-nowrap",
+        "border-border bg-surface @container overflow-hidden rounded-lg border sm:rounded-md",
         unlisted && "border-dashed",
+        className,
       )}
     >
       {children}
