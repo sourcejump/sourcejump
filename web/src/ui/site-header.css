@@ -11,6 +11,10 @@
   gap: 4px;
   margin-left: auto;
 }
+/* Match the header search field without resizing buttons elsewhere. */
+.site-header-account > a {
+  height: calc(var(--spacing) * 9);
+}
 @media (max-width: 380px) {
   .site-header {
     --site-header-height: 104px;
