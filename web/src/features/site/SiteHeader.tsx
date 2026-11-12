@@ -1,6 +1,7 @@
 // The top bar on every page: wordmark, sections, and the account corner.
 import { Suspense } from "react";
 import { Link } from "@/ui/Link";
+import { HeaderSearch } from "./HeaderSearch";
 import { AccountArea } from "./AccountArea";
 import { SiteNav, SiteNavLinks } from "./SiteNav";
 
@@ -9,9 +10,15 @@ export function SiteHeader() {
     <header
       // Named so page fades leave the header in place (motion.css).
       style={{ viewTransitionName: "site-header" }}
-      className="border-border bg-bg/90 sticky top-0 z-10 border-b backdrop-blur"
+      className={
+        "site-header border-border bg-bg/90 sticky top-0 z-10 border-b backdrop-blur"
+      }
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-1 px-4 lg:gap-6">
+      <div
+        className={
+          "site-header-row mx-auto flex h-16 max-w-6xl items-center gap-1 px-4 lg:gap-6"
+        }
+      >
         <Link
           href="/"
           className="text-lg font-bold tracking-wider whitespace-nowrap uppercase"
@@ -21,11 +28,16 @@ export function SiteHeader() {
         <Suspense fallback={<SiteNavLinks pathname={null} />}>
           <SiteNav />
         </Suspense>
-        <div className="ml-auto flex items-center">
-          {/* Depends on the session cookie, so it streams in per request while the shell stays static. */}
-          <Suspense>
-            <AccountArea />
+        <div className="site-header-right">
+          <Suspense fallback={<div className="size-9 xl:w-64" />}>
+            <HeaderSearch />
           </Suspense>
+          <div className="site-header-account">
+            {/* Depends on the session cookie, so it streams in per request while the shell stays static. */}
+            <Suspense>
+              <AccountArea />
+            </Suspense>
+          </div>
         </div>
       </div>
     </header>
