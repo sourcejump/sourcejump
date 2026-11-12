@@ -2,6 +2,9 @@
 .site-header {
   --site-header-height: 64px;
 }
+.site-header-menu {
+  margin-right: 10px;
+}
 .site-header-right {
   display: flex;
   align-items: center;

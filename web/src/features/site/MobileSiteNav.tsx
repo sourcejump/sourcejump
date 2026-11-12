@@ -30,7 +30,7 @@ const icons: Record<(typeof sections)[number]["href"], LucideIcon> = {
 // Recovered from the navigation before the desktop header redesign.
 export function MobileSiteNav({ pathname }: { pathname: string | null }) {
   return (
-    <div className="-order-1 -ml-2 lg:hidden">
+    <div className="site-header-menu -order-1 -ml-2 lg:hidden">
       <Menu
         label="Sections"
         sheet
@@ -38,15 +38,15 @@ export function MobileSiteNav({ pathname }: { pathname: string | null }) {
           <>
             <MenuIcon
               aria-hidden
-              className="size-5 group-aria-expanded:hidden"
+              className="size-4.5 group-aria-expanded:hidden"
             />
             <X
               aria-hidden
-              className="hidden size-5 group-aria-expanded:block"
+              className="hidden size-4.5 group-aria-expanded:block"
             />
           </>
         }
-        triggerClassName="group flex size-10 items-center justify-center rounded-md text-text-muted hover:bg-surface-raised hover:text-text aria-expanded:bg-surface-raised aria-expanded:text-text"
+        triggerClassName="group flex size-9 items-center justify-center rounded-md text-text-muted hover:bg-surface-raised hover:text-text aria-expanded:bg-surface-raised aria-expanded:text-text"
       >
         <ul role="none" className="flex flex-col p-2">
           {sections.map(({ href, label, summary }, index) => {
