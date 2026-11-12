@@ -79,7 +79,7 @@ Pages swap in place with no full page load. The old page fades out quickly and t
 Links never prefetch, whether in view or hovered (lead's choice, 2026-10-19). A page loads only once it's opened, and the fade covers the wait. `e2e/navigation.e2e.ts` checks that following a link doesn't reload the page.
 
 ## Layout shell (`web/src/features/site/`)
-Header (wordmark, sections, account corner) and footer, applied in the root layout. On narrow screens the sections collapse into a menu. The account corner and the current-section highlight depend on the request, so each sits in `<Suspense>` and every page's shell stays static. Search lives on the Players page.
+Header (wordmark, sections, player/map search, account corner) and footer, applied in the root layout. On narrow screens the sections open as a sheet with icon tiles, descriptions, an active-section marker, and ruleset/community links. Escape, an outside tap, or selecting a link closes it; arrow keys move between links. Search expands across the header below desktop widths; `/` focuses it, arrow keys select results, and Enter navigates. The full Steam sign-in label stays visible, moving to a second row on phones 380px and narrower. The account corner, search, and current-section highlight sit in `<Suspense>` so every page shell stays static. Browser coverage: `web/e2e/mobile-header.e2e.ts`.
 
 ## Screenshot tests
 `npm run test:ui` (part of `just check`) screenshots `/dev/ui` wide, on a phone, with the menu open and with the dialog open, and fails on any pixel change. After an intended visual change:

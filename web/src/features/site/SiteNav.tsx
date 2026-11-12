@@ -1,10 +1,9 @@
 "use client";
 // Header navigation: section links on wide screens, a menu on narrow ones. Marks the current section.
-import { Menu as MenuIcon } from "lucide-react";
 import { Link } from "@/ui/Link";
 import { usePathname } from "next/navigation";
 import { classNames } from "@/ui/classNames";
-import { Menu, MenuLink } from "@/ui/Menu";
+import { MobileSiteNav } from "./MobileSiteNav";
 import { isCurrent, sections } from "./navigation";
 
 /**
@@ -41,25 +40,7 @@ export function SiteNavLinks({ pathname }: { pathname: string | null }) {
           })}
         </ul>
       </nav>
-      {/* Ordered before the wordmark, so on a phone the menu button sits on its left. */}
-      <div className="-order-1 -ml-2 lg:hidden">
-        <Menu
-          label="Sections"
-          trigger={<MenuIcon aria-hidden className="size-5" />}
-          triggerClassName="flex size-10 items-center justify-center rounded-md text-text-muted hover:bg-surface-raised hover:text-text"
-        >
-          {sections.map(({ href, label }) => (
-            <MenuLink
-              key={href}
-              href={href}
-              aria-current={isCurrent(href, pathname) ? "page" : undefined}
-              className="aria-[current=page]:text-accent"
-            >
-              {label}
-            </MenuLink>
-          ))}
-        </Menu>
-      </div>
+      <MobileSiteNav pathname={pathname} />
     </>
   );
 }

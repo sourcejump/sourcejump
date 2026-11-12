@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @import "../ui/tokens.css";
 @import "../ui/motion.css";
+@import "../ui/site-header.css";
 
 @layer base {
   /* Tailwind leaves buttons with the default arrow; everything clickable here shows the hand. */

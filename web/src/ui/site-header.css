@@ -1,0 +1,38 @@
+/* Keep upstream branding and full sign-in text readable on narrow phones. */
+.site-header {
+  --site-header-height: 64px;
+}
+.site-header-menu {
+  margin-right: 10px;
+}
+.site-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+/* Match the header search field without resizing buttons elsewhere. */
+.site-header-account > a {
+  height: calc(var(--spacing) * 9);
+}
+@media (max-width: 380px) {
+  .site-header {
+    --site-header-height: 104px;
+  }
+  .site-header-row {
+    height: 104px;
+    flex-wrap: wrap;
+    padding-block: 8px;
+  }
+  .site-header-right {
+    display: contents;
+  }
+  .site-header-right > div:has(> button[aria-label="Search players and maps"]) {
+    margin-left: auto;
+  }
+  .site-header-account {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
