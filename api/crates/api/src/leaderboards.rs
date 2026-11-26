@@ -355,19 +355,22 @@ mod tests {
                 .await
                 .unwrap();
         }
-        // Draft: badges T3 is worth 200; gabe holds its WR. ricochet, 10% slower: 100 + 100 × (30/33)^4 = 168.3,
-        // plus arcane T1 at the WR, 50. Bonuses count apart: arcane's T2 bonus is worth 25.
+        // Draft: badges T3 earns 22.5 for finishing, and its record is worth 120 + 40 × ln 3 = 163.9 more; gabe
+        // holds it: 186.4. Its median runner is 5% behind, so ricochet, 10% behind, gets 0.25² of the record
+        // value: 32.7. Alone on arcane T1, they get all of 10 + 40 + 40 × ln 2 = 77.7. Bonuses count apart:
+        // arcane's T2 bonus is a quarter of 15 + 80 + 40 × ln 2, 30.7.
         let (top, _) = lists(&db, "").await;
-        assert_eq!(top, [row("ricochet", 1, 218, 2), row("gabe", 2, 200, 1)]);
+        assert_eq!(top, [row("gabe", 1, 186, 1), row("ricochet", 2, 110, 2)]);
         standings::tests::assert_totals_current(&db).await;
         let (top, completed) = lists(&db, "track=bonuses").await;
-        assert_eq!(top, [row("ricochet", 1, 25, 1)]);
+        assert_eq!(top, [row("ricochet", 1, 31, 1)]);
         assert_eq!(completed, top);
 
-        // A new WR on arcane lowers ricochet's speed points there: 25 + 25 × (18/20)^4 = 41.4.
+        // A new WR on arcane, by gabe: 10 + 40 + 40 × ln 3 = 93.9. ricochet, 11% behind, is now twice as far
+        // back as the median runner: 10 + 83.9 × 0.25² = 15.2.
         submit(&db, &key, "e", "bhop_arcane", 0, 18.0, false).await;
         let (top, _) = lists(&db, "").await;
-        assert_eq!(top, [row("gabe", 1, 250, 2), row("ricochet", 2, 210, 2)]);
+        assert_eq!(top, [row("gabe", 1, 280, 2), row("ricochet", 2, 48, 2)]);
         standings::tests::assert_totals_current(&db).await;
 
         // Taking that run off the boards gives the points back.
@@ -379,8 +382,8 @@ mod tests {
             .await
             .unwrap();
         let (top, completed) = lists(&db, "").await;
-        assert_eq!(top, [row("ricochet", 1, 218, 2), row("gabe", 2, 200, 1)]);
-        assert_eq!(completed[1], row("gabe", 2, 200, 1));
+        assert_eq!(top, [row("gabe", 1, 186, 1), row("ricochet", 2, 110, 2)]);
+        assert_eq!(completed[1], row("gabe", 2, 186, 1));
         standings::tests::assert_totals_current(&db).await;
 
         // A recount from scratch agrees with the recounts as they happened.
@@ -475,10 +478,11 @@ mod tests {
             .await
             .unwrap();
 
-        // The cheat's 20 s sets no WR: alice's 25 s on the T2 map is worth all of 100; gabe gets
-        // 50 + 50 × (25/32)^4 = 68.6. The untiered map counts as completed but earns nothing.
+        // The cheat's 20 s sets no WR: alice's 25 s on the T2 map earns all of 15 + 80 + 40 × ln 3 = 138.9;
+        // gabe, twice as far behind as the median, 15 + 123.9 × 0.25² = 22.7. The untiered map counts as
+        // completed but earns nothing.
         let (top, completed) = lists(&db, "view=legacy").await;
-        assert_eq!(top, [row("alice", 1, 100, 2), row("gabe", 2, 69, 1)]);
+        assert_eq!(top, [row("alice", 1, 139, 2), row("gabe", 2, 23, 1)]);
         assert_eq!(completed, top);
 
         // The full lists page through the same stored places.
@@ -506,14 +510,15 @@ mod tests {
 
         tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
         assert!(standings::refresh_legacy_if_bans_ended(&db).await.unwrap());
-        // Their 20 s is the record again: all of 100, and alice's 25 s drops to 50 + 50 × (20/25)^4 = 70.5.
+        // Their 20 s is the record again, with three finishers: all of 15 + 80 + 40 × ln 4 = 150.5. alice, the
+        // median runner, gets a quarter of the record value: 48.9; gabe, further back, 19.9.
         let (top, _) = lists(&db, "view=legacy").await;
         assert_eq!(
             top,
             [
-                row("cheat", 1, 100, 1),
-                row("alice", 2, 70, 2),
-                row("gabe", 3, 58, 1)
+                row("cheat", 1, 150, 1),
+                row("alice", 2, 49, 2),
+                row("gabe", 3, 20, 1)
             ]
         );
         assert!(

@@ -586,7 +586,10 @@ mod tests {
     #[sqlx::test]
     async fn lists_recently_active_players_without_a_search(db: PgPool) {
         let key = setup(&db).await;
-        test_client::post(&db, "/v1/runs", Some(&key), &run("a", 30.0)).await;
+        // Run within the last 30 days, whatever today is: the helper's fixed date ages out.
+        let mut recent = run("a", 30.0);
+        recent["finished_at"] = serde_json::json!(chrono::Utc::now().timestamp() - 3600);
+        test_client::post(&db, "/v1/runs", Some(&key), &recent).await;
 
         assert_eq!(names(&db, "/v1/players").await, ["gabe"]);
         assert_eq!(

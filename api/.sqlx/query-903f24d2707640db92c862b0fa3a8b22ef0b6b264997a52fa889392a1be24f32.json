@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH counted_runs AS MATERIALIZED (\n            SELECT l.player_steamid64, l.map_id, l.time\n            FROM legacy_personal_bests l\n            WHERE NOT EXISTS (SELECT 1 FROM records_bans b WHERE b.player_steamid64 = l.player_steamid64)\n        ), boards AS (\n            -- percentile_cont is no window function, so each map's values are grouped apart and joined back.\n            SELECT map_id, min(time) AS best, percentile_cont(0.5) WITHIN GROUP (ORDER BY time) AS median,\n                   count(*)::int AS finishers\n            FROM counted_runs GROUP BY map_id\n        ), counted AS (\n            SELECT r.player_steamid64,\n                   sum(coalesce(points_for(m.tier, r.time, b.best, b.median, b.finishers, false, $1), 0)) AS points,\n                   count(*) AS completed\n            FROM counted_runs r\n            JOIN boards b USING (map_id)\n            JOIN legacy_maps m ON m.id = r.map_id\n            GROUP BY r.player_steamid64\n        )\n        -- Ranked on the points shown, so players listed with equal points share a place; names break ties in\n        -- the lists' order (`leaderboards.rs`, `leaderboards/list.rs`).\n        INSERT INTO legacy_standings\n            (player_steamid64, points, completed, points_rank, points_place, completed_rank, completed_place)\n        SELECT c.player_steamid64, c.points, c.completed,\n               rank() OVER (ORDER BY round(c.points) DESC),\n               row_number() OVER (ORDER BY c.points DESC, lower(p.name), c.player_steamid64),\n               rank() OVER (ORDER BY c.completed DESC),\n               row_number() OVER (ORDER BY c.completed DESC, lower(p.name), c.player_steamid64)\n        FROM counted c JOIN legacy_players p ON p.steamid64 = c.player_steamid64\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "903f24d2707640db92c862b0fa3a8b22ef0b6b264997a52fa889392a1be24f32"
+}
