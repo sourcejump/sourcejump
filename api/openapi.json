@@ -9050,6 +9050,14 @@
                 "type": "boolean",
                 "description": "True while the community hasn't published a formula and the draft is used."
               },
+              "tier_count": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int32",
+                "description": "The published tier count, for pages that list what each tier is worth."
+              },
               "tiers": {
                 "type": "boolean",
                 "description": "False until a tier count is published; 2.0 tracks without a tier earn no points."
@@ -9060,39 +9068,51 @@
       },
       "PointsPolicy": {
         "type": "object",
-        "description": "What a personal best is worth: a map is worth `base` at tier 1 and `growth_percent` of the tier below at each\ntier up; a bonus `bonus_percent` of that at its own tier. Finishing earns `finish_percent` of the value, and\nthe rest is earned by speed, as `(world record ÷ time) ^ speed_exponent`. Whole numbers, so policies compare.",
+        "description": "What a personal best is worth (SQL `points_for`, migration 0058). Finishing earns `finish_base` at tier 1,\ntimes `finish_growth_percent` each tier up. A board's record is worth `record_tier_points` per tier plus\n`record_finisher_points` × ln(1 + finishers); the record earns all of that, and a run as far behind it as\nthe median runner `median_share_percent`, less again further back. The median's distance behind counts as\nat least `min_median_gap_percent` of the record. A bonus earns `bonus_percent` of all that at its own tier.\nWhole numbers, so policies compare.",
         "required": [
-          "base",
-          "growth_percent",
-          "finish_percent",
-          "speed_exponent",
+          "finish_base",
+          "finish_growth_percent",
+          "record_tier_points",
+          "record_finisher_points",
+          "median_share_percent",
+          "min_median_gap_percent",
           "bonus_percent"
         ],
         "properties": {
-          "base": {
-            "type": "integer",
-            "format": "int32",
-            "description": "1 to 100000."
-          },
           "bonus_percent": {
             "type": "integer",
             "format": "int32",
             "description": "0 to 100."
           },
-          "finish_percent": {
+          "finish_base": {
             "type": "integer",
             "format": "int32",
-            "description": "0 to 100."
+            "description": "1 to 100000."
           },
-          "growth_percent": {
+          "finish_growth_percent": {
             "type": "integer",
             "format": "int32",
-            "description": "100 to 1000: 200 doubles the value each tier."
+            "description": "100 to 1000: 150 is ×1.5 each tier."
           },
-          "speed_exponent": {
+          "median_share_percent": {
             "type": "integer",
             "format": "int32",
-            "description": "1 to 20."
+            "description": "1 to 99."
+          },
+          "min_median_gap_percent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "1 to 100."
+          },
+          "record_finisher_points": {
+            "type": "integer",
+            "format": "int32",
+            "description": "0 to 100000."
+          },
+          "record_tier_points": {
+            "type": "integer",
+            "format": "int32",
+            "description": "0 to 100000."
           }
         }
       },

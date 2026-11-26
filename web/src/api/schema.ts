@@ -2710,20 +2710,23 @@ export interface components {
         PointsFormula: components["schemas"]["PointsPolicy"] & {
             /** @description True while the community hasn't published a formula and the draft is used. */
             draft: boolean;
+            /**
+             * Format: int32
+             * @description The published tier count, for pages that list what each tier is worth.
+             */
+            tier_count?: number | null;
             /** @description False until a tier count is published; 2.0 tracks without a tier earn no points. */
             tiers: boolean;
         };
         /**
-         * @description What a personal best is worth: a map is worth `base` at tier 1 and `growth_percent` of the tier below at each
-         *     tier up; a bonus `bonus_percent` of that at its own tier. Finishing earns `finish_percent` of the value, and
-         *     the rest is earned by speed, as `(world record ÷ time) ^ speed_exponent`. Whole numbers, so policies compare.
+         * @description What a personal best is worth (SQL `points_for`, migration 0058). Finishing earns `finish_base` at tier 1,
+         *     times `finish_growth_percent` each tier up. A board's record is worth `record_tier_points` per tier plus
+         *     `record_finisher_points` × ln(1 + finishers); the record earns all of that, and a run as far behind it as
+         *     the median runner `median_share_percent`, less again further back. The median's distance behind counts as
+         *     at least `min_median_gap_percent` of the record. A bonus earns `bonus_percent` of all that at its own tier.
+         *     Whole numbers, so policies compare.
          */
         PointsPolicy: {
-            /**
-             * Format: int32
-             * @description 1 to 100000.
-             */
-            base: number;
             /**
              * Format: int32
              * @description 0 to 100.
@@ -2731,19 +2734,34 @@ export interface components {
             bonus_percent: number;
             /**
              * Format: int32
-             * @description 0 to 100.
+             * @description 1 to 100000.
              */
-            finish_percent: number;
+            finish_base: number;
             /**
              * Format: int32
-             * @description 100 to 1000: 200 doubles the value each tier.
+             * @description 100 to 1000: 150 is ×1.5 each tier.
              */
-            growth_percent: number;
+            finish_growth_percent: number;
             /**
              * Format: int32
-             * @description 1 to 20.
+             * @description 1 to 99.
              */
-            speed_exponent: number;
+            median_share_percent: number;
+            /**
+             * Format: int32
+             * @description 1 to 100.
+             */
+            min_median_gap_percent: number;
+            /**
+             * Format: int32
+             * @description 0 to 100000.
+             */
+            record_finisher_points: number;
+            /**
+             * Format: int32
+             * @description 0 to 100000.
+             */
+            record_tier_points: number;
         };
         /** @description One post in full. */
         Post: components["schemas"]["PostSummary"] & {

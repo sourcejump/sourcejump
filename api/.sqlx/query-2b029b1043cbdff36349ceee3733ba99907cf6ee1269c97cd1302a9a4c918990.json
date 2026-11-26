@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH now AS MATERIALIZED (\n            SELECT b.map_id, b.style, b.track, counted.best, counted.median, counted.finishers,\n                   CASE WHEN $5 THEN (SELECT t.tier FROM current_map_tiers t\n                                      WHERE t.map_id = b.map_id AND t.track = b.track) END AS tier\n            FROM unnest($1::int8[], $2::text[], $3::int2[]) AS b (map_id, style, track)\n            CROSS JOIN LATERAL (\n                SELECT min(pb.time) AS best, percentile_cont(0.5) WITHIN GROUP (ORDER BY pb.time) AS median,\n                       count(*)::int AS finishers\n                FROM personal_bests pb\n                WHERE pb.map_id = b.map_id AND pb.style = b.style AND pb.track = b.track\n            ) counted\n        ), runners AS MATERIALIZED (\n            SELECT DISTINCT player_steamid64, style, track > 0 AS bonus FROM runs WHERE id = ANY($4)\n        ), moved AS (\n            SELECT now.*, stored.best AS stored_best, stored.median AS stored_median,\n                   stored.finishers AS stored_finishers, stored.tier AS stored_tier\n            FROM now JOIN standings_boards stored USING (map_id, style, track)\n            WHERE now.best IS NOT NULL\n              AND (now.best, now.median, now.finishers, now.tier)\n                  IS DISTINCT FROM (stored.best, stored.median, stored.finishers, stored.tier)\n        ), changes AS (\n            SELECT pb.style, pb.track > 0 AS bonus, pb.player_steamid64,\n                   sum(coalesce(points_for(m.tier, pb.time, m.best, m.median, m.finishers, pb.track > 0, $6), 0)\n                       - coalesce(points_for(m.stored_tier, pb.time, m.stored_best, m.stored_median,\n                                             m.stored_finishers, pb.track > 0, $6), 0)) AS change\n            FROM moved m\n            JOIN personal_bests pb ON pb.map_id = m.map_id AND pb.style = m.style AND pb.track = m.track\n            -- The runs' players are summed again below.\n            WHERE NOT EXISTS (\n                SELECT 1 FROM runners r\n                WHERE r.player_steamid64 = pb.player_steamid64 AND r.style = pb.style AND r.bonus = (pb.track > 0)\n            )\n            GROUP BY 1, 2, 3\n        ), moved_totals AS (\n            UPDATE standings s SET points = s.points + c.change FROM changes c\n            WHERE s.style = c.style AND s.bonus = c.bonus AND s.player_steamid64 = c.player_steamid64\n              AND c.change <> 0\n        ), emptied AS (\n            DELETE FROM standings_boards stored USING now\n            WHERE stored.map_id = now.map_id AND stored.style = now.style AND stored.track = now.track\n              AND now.best IS NULL\n        )\n        INSERT INTO standings_boards (map_id, style, track, best, median, finishers, tier)\n        SELECT map_id, style, track, best, median, finishers, tier FROM now WHERE best IS NOT NULL\n        ON CONFLICT (map_id, style, track) DO UPDATE\n        SET best = excluded.best, median = excluded.median, finishers = excluded.finishers, tier = excluded.tier\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "TextArray",
+        "Int2Array",
+        "Int8Array",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2b029b1043cbdff36349ceee3733ba99907cf6ee1269c97cd1302a9a4c918990"
+}

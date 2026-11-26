@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO standings (style, bonus, player_steamid64, points, completed)\n        SELECT pb.style, pb.track > 0, pb.player_steamid64,\n               sum(coalesce(points_for(b.tier, pb.time, b.best, b.median, b.finishers, pb.track > 0, $1), 0)),\n               count(*)\n        FROM personal_bests pb\n        JOIN standings_boards b ON b.map_id = pb.map_id AND b.style = pb.style AND b.track = pb.track\n        GROUP BY 1, 2, 3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "27465996f4762580de291992b32984f43c137d9697b61f3a94156e1e7cb4b04d"
+}

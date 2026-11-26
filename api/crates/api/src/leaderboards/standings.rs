@@ -1,10 +1,10 @@
 //! Stored totals: `standings`, `legacy_standings` and `maps.players`, recounted where they change so the
 //! leaderboards and the map list only read them.
 //!
-//! A personal best's points follow from its time and two values of its board: the best time and the tier.
-//! Those are stored per board as the totals were counted with them (`standings_boards`), with the formula they
-//! were counted with (`standings_formula`), and pages work a personal best's points out from them
-//! (`personal_best_points`, migration 0051).
+//! A personal best's points follow from its time and four values of its board: the best time, the median
+//! time, how many finished, and the tier. Those are stored per board as the totals were counted with them
+//! (`standings_boards`), with the formula they were counted with (`standings_formula`), and pages work a
+//! personal best's points out from them (`personal_best_points`, migration 0058).
 //!
 //! What changes them, and who calls what here:
 //! - a personal best set or removed (the ingest, run invalidation): `refresh_runs`, for those runs' boards, and
@@ -15,9 +15,10 @@
 //! - a ban or lifted ban, or a legacy import: `refresh_legacy`, as banned players' legacy runs don't count.
 //!   A timed ban ends on its date with nothing written, so `watch_ended_bans` looks for those.
 //!
-//! A board's recount compares its best time and tier with the stored ones. When they're the same, as after a
-//! personal best that isn't a world record, only the runs' own players' totals change. When they differ, as
-//! after a new world record or tier, everyone on the board has new points, and each total moves by the change.
+//! A board's recount compares those values with the stored ones. When they're the same, as after an
+//! improvement that leaves the median where it was, only the runs' own players' totals change. When they
+//! differ, as after a new world record, tier or finisher, everyone on the board has new points, and each total
+//! moves by the change.
 //!
 //! Every recount takes one advisory lock, held to the end of the caller's transaction, so recounts happen one
 //! at a time, each from the values the last one stored. They write only this module's tables, never personal
@@ -54,6 +55,8 @@ pub struct PointsFormula {
     pub draft: bool,
     /// False until a tier count is published; 2.0 tracks without a tier earn no points.
     pub tiers: bool,
+    /// The published tier count, for pages that list what each tier is worth.
+    pub tier_count: Option<i16>,
 }
 
 /// The published points policy, or the draft while there's none.
@@ -67,10 +70,12 @@ pub async fn formula(conn: &mut PgConnection) -> Result<PointsFormula, sqlx::Err
         Some(Policy::Points(policy)) => Some(policy),
         _ => None,
     });
+    let tier_count = tiers::tier_count(conn).await?;
     Ok(PointsFormula {
         policy: published.unwrap_or(PointsPolicy::DRAFT),
         draft: published.is_none(),
-        tiers: tiers::tier_count(conn).await?.is_some(),
+        tiers: tier_count.is_some(),
+        tier_count,
     })
 }
 
@@ -142,8 +147,8 @@ struct Board {
 /// Recounts these boards, and the totals they move: those of everyone on a board whose best time or tier
 /// changed, and those of `run_ids`' players, who may have a new personal best there or have just lost one.
 ///
-/// Everyone else on a changed board kept their time, so their total moves by their points with the new best
-/// and tier less those with the stored ones: one read of the board, not of all their personal bests. The runs'
+/// Everyone else on a changed board kept their time, so their total moves by their points with the board's
+/// new values less those with the stored ones: one read of the board, not of all their personal bests. The runs'
 /// players are summed again, as their own time and completed count may have changed and they may have no row
 /// yet. Totals moved by changes can differ from a fresh sum in the last digits; `refresh_all` sums them again.
 async fn refresh(
@@ -156,34 +161,40 @@ async fn refresh(
         // Nothing counted yet, so there's nothing to move: count everything.
         return refresh_all(conn).await;
     };
-    let p = formula.policy;
     let map_ids: Vec<i64> = boards.iter().map(|board| board.map_id).collect();
     let styles: Vec<String> = boards.iter().map(|board| board.style.clone()).collect();
     let tracks: Vec<i16> = boards.iter().map(|board| board.track).collect();
 
     // One statement, so every part reads the stored boards as they were before it: the changes are measured
-    // from the old best and tier while the new ones are stored. The first two parts are materialized so each
+    // from the old values while the new ones are stored. The first two parts are materialized so each
     // is worked out once: inlined, a prepared statement's generic plan redid them for every personal best.
     sqlx::query!(
         r#"
         WITH now AS MATERIALIZED (
-            SELECT b.map_id, b.style, b.track,
-                   (SELECT min(pb.time) FROM personal_bests pb
-                    WHERE pb.map_id = b.map_id AND pb.style = b.style AND pb.track = b.track) AS best,
+            SELECT b.map_id, b.style, b.track, counted.best, counted.median, counted.finishers,
                    CASE WHEN $5 THEN (SELECT t.tier FROM current_map_tiers t
                                       WHERE t.map_id = b.map_id AND t.track = b.track) END AS tier
             FROM unnest($1::int8[], $2::text[], $3::int2[]) AS b (map_id, style, track)
+            CROSS JOIN LATERAL (
+                SELECT min(pb.time) AS best, percentile_cont(0.5) WITHIN GROUP (ORDER BY pb.time) AS median,
+                       count(*)::int AS finishers
+                FROM personal_bests pb
+                WHERE pb.map_id = b.map_id AND pb.style = b.style AND pb.track = b.track
+            ) counted
         ), runners AS MATERIALIZED (
             SELECT DISTINCT player_steamid64, style, track > 0 AS bonus FROM runs WHERE id = ANY($4)
         ), moved AS (
-            SELECT now.*, stored.best AS stored_best, stored.tier AS stored_tier
+            SELECT now.*, stored.best AS stored_best, stored.median AS stored_median,
+                   stored.finishers AS stored_finishers, stored.tier AS stored_tier
             FROM now JOIN standings_boards stored USING (map_id, style, track)
-            WHERE now.best IS NOT NULL AND (now.best, now.tier) IS DISTINCT FROM (stored.best, stored.tier)
+            WHERE now.best IS NOT NULL
+              AND (now.best, now.median, now.finishers, now.tier)
+                  IS DISTINCT FROM (stored.best, stored.median, stored.finishers, stored.tier)
         ), changes AS (
             SELECT pb.style, pb.track > 0 AS bonus, pb.player_steamid64,
-                   sum(coalesce(points_for(m.tier, pb.time, m.best, pb.track > 0, $6, $7, $8, $9, $10), 0)
-                       - coalesce(points_for(m.stored_tier, pb.time, m.stored_best, pb.track > 0,
-                                             $6, $7, $8, $9, $10), 0)) AS change
+                   sum(coalesce(points_for(m.tier, pb.time, m.best, m.median, m.finishers, pb.track > 0, $6), 0)
+                       - coalesce(points_for(m.stored_tier, pb.time, m.stored_best, m.stored_median,
+                                             m.stored_finishers, pb.track > 0, $6), 0)) AS change
             FROM moved m
             JOIN personal_bests pb ON pb.map_id = m.map_id AND pb.style = m.style AND pb.track = m.track
             -- The runs' players are summed again below.
@@ -201,20 +212,17 @@ async fn refresh(
             WHERE stored.map_id = now.map_id AND stored.style = now.style AND stored.track = now.track
               AND now.best IS NULL
         )
-        INSERT INTO standings_boards (map_id, style, track, best, tier)
-        SELECT map_id, style, track, best, tier FROM now WHERE best IS NOT NULL
-        ON CONFLICT (map_id, style, track) DO UPDATE SET best = excluded.best, tier = excluded.tier
+        INSERT INTO standings_boards (map_id, style, track, best, median, finishers, tier)
+        SELECT map_id, style, track, best, median, finishers, tier FROM now WHERE best IS NOT NULL
+        ON CONFLICT (map_id, style, track) DO UPDATE
+        SET best = excluded.best, median = excluded.median, finishers = excluded.finishers, tier = excluded.tier
         "#,
         &map_ids,
         &styles,
         &tracks,
         run_ids,
         formula.tiers,
-        f64::from(p.base),
-        f64::from(p.growth_percent),
-        f64::from(p.finish_percent),
-        f64::from(p.speed_exponent),
-        f64::from(p.bonus_percent)
+        JsonColumn(&formula.policy) as _
     )
     .execute(&mut *conn)
     .await?;
@@ -248,7 +256,7 @@ async fn sum_runners_again(
         -- Each player's own personal bests, through the primary key: joined on the list instead, the planner
         -- can't tell how short it is and reads every personal best.
         CROSS JOIN LATERAL (
-            SELECT sum(coalesce(points_for(b.tier, pb.time, b.best, pb.track > 0, $2, $3, $4, $5, $6), 0))
+            SELECT sum(coalesce(points_for(b.tier, pb.time, b.best, b.median, b.finishers, pb.track > 0, $2), 0))
                        AS points,
                    count(*) AS completed
             FROM personal_bests pb
@@ -258,11 +266,7 @@ async fn sum_runners_again(
         WHERE totals.completed > 0
         "#,
         run_ids,
-        f64::from(p.base),
-        f64::from(p.growth_percent),
-        f64::from(p.finish_percent),
-        f64::from(p.speed_exponent),
-        f64::from(p.bonus_percent)
+        JsonColumn(p) as _
     )
     .execute(&mut *conn)
     .await?;
@@ -276,15 +280,16 @@ async fn sum_runners_again(
 pub async fn refresh_all(conn: &mut PgConnection) -> Result<(), sqlx::Error> {
     lock(conn).await?;
     let formula = formula(conn).await?;
-    let p = formula.policy;
     sqlx::query!("DELETE FROM standings_boards")
         .execute(&mut *conn)
         .await?;
     sqlx::query!(
         r#"
-        INSERT INTO standings_boards (map_id, style, track, best, tier)
-        SELECT b.map_id, b.style, b.track, b.best, t.tier
-        FROM (SELECT map_id, style, track, min(time) AS best FROM personal_bests GROUP BY 1, 2, 3) b
+        INSERT INTO standings_boards (map_id, style, track, best, median, finishers, tier)
+        SELECT b.map_id, b.style, b.track, b.best, b.median, b.finishers, t.tier
+        FROM (SELECT map_id, style, track, min(time) AS best,
+                     percentile_cont(0.5) WITHIN GROUP (ORDER BY time) AS median, count(*)::int AS finishers
+              FROM personal_bests GROUP BY 1, 2, 3) b
         LEFT JOIN current_map_tiers t ON $1 AND t.map_id = b.map_id AND t.track = b.track
         "#,
         formula.tiers
@@ -298,16 +303,13 @@ pub async fn refresh_all(conn: &mut PgConnection) -> Result<(), sqlx::Error> {
         r#"
         INSERT INTO standings (style, bonus, player_steamid64, points, completed)
         SELECT pb.style, pb.track > 0, pb.player_steamid64,
-               sum(coalesce(points_for(b.tier, pb.time, b.best, pb.track > 0, $1, $2, $3, $4, $5), 0)), count(*)
+               sum(coalesce(points_for(b.tier, pb.time, b.best, b.median, b.finishers, pb.track > 0, $1), 0)),
+               count(*)
         FROM personal_bests pb
         JOIN standings_boards b ON b.map_id = pb.map_id AND b.style = pb.style AND b.track = pb.track
         GROUP BY 1, 2, 3
         "#,
-        f64::from(p.base),
-        f64::from(p.growth_percent),
-        f64::from(p.finish_percent),
-        f64::from(p.speed_exponent),
-        f64::from(p.bonus_percent)
+        JsonColumn(&formula.policy) as _
     )
     .execute(&mut *conn)
     .await?;
@@ -401,22 +403,28 @@ pub async fn refresh_if_stale(db: &PgPool) -> Result<bool, sqlx::Error> {
 /// Legacy records are one style's main tracks, on the old site's tiers, which are always in force for them.
 /// Each standing's rank and place on the two lists is stored with it, so a list reads one page.
 async fn count_legacy(conn: &mut PgConnection, formula: &PointsFormula) -> Result<(), sqlx::Error> {
-    let p = formula.policy;
     sqlx::query!("DELETE FROM legacy_standings")
         .execute(&mut *conn)
         .await?;
     sqlx::query!(
         r#"
-        WITH counted AS (
-            SELECT player_steamid64, sum(points) AS points, count(*) AS completed FROM (
-                SELECT l.player_steamid64,
-                       coalesce(points_for(m.tier, l.time, min(l.time) OVER (PARTITION BY l.map_id), false,
-                                           $1, $2, $3, $4, $5), 0) AS points
-                FROM legacy_personal_bests l
-                JOIN legacy_maps m ON m.id = l.map_id
-                WHERE NOT EXISTS (SELECT 1 FROM records_bans b WHERE b.player_steamid64 = l.player_steamid64)
-            ) scored
-            GROUP BY player_steamid64
+        WITH counted_runs AS MATERIALIZED (
+            SELECT l.player_steamid64, l.map_id, l.time
+            FROM legacy_personal_bests l
+            WHERE NOT EXISTS (SELECT 1 FROM records_bans b WHERE b.player_steamid64 = l.player_steamid64)
+        ), boards AS (
+            -- percentile_cont is no window function, so each map's values are grouped apart and joined back.
+            SELECT map_id, min(time) AS best, percentile_cont(0.5) WITHIN GROUP (ORDER BY time) AS median,
+                   count(*)::int AS finishers
+            FROM counted_runs GROUP BY map_id
+        ), counted AS (
+            SELECT r.player_steamid64,
+                   sum(coalesce(points_for(m.tier, r.time, b.best, b.median, b.finishers, false, $1), 0)) AS points,
+                   count(*) AS completed
+            FROM counted_runs r
+            JOIN boards b USING (map_id)
+            JOIN legacy_maps m ON m.id = r.map_id
+            GROUP BY r.player_steamid64
         )
         -- Ranked on the points shown, so players listed with equal points share a place; names break ties in
         -- the lists' order (`leaderboards.rs`, `leaderboards/list.rs`).
@@ -429,11 +437,7 @@ async fn count_legacy(conn: &mut PgConnection, formula: &PointsFormula) -> Resul
                row_number() OVER (ORDER BY c.completed DESC, lower(p.name), c.player_steamid64)
         FROM counted c JOIN legacy_players p ON p.steamid64 = c.player_steamid64
         "#,
-        f64::from(p.base),
-        f64::from(p.growth_percent),
-        f64::from(p.finish_percent),
-        f64::from(p.speed_exponent),
-        f64::from(p.bonus_percent)
+        JsonColumn(&formula.policy) as _
     )
     .execute(&mut *conn)
     .await?;
@@ -473,7 +477,7 @@ pub(crate) mod tests {
             .await
             .unwrap();
             let boards = sqlx::query_scalar(
-                "SELECT concat_ws(' ', map_id, style, track, best, tier) FROM standings_boards ORDER BY 1",
+                "SELECT concat_ws(' ', map_id, style, track, best, median, finishers, tier) FROM standings_boards ORDER BY 1",
             )
             .fetch_all(&mut *conn)
             .await
