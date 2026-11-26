@@ -38,30 +38,41 @@ pub struct TiersPolicy {
     pub count: i16,
 }
 
-/// What a personal best is worth: a map is worth `base` at tier 1 and `growth_percent` of the tier below at each
-/// tier up; a bonus `bonus_percent` of that at its own tier. Finishing earns `finish_percent` of the value, and
-/// the rest is earned by speed, as `(world record ÷ time) ^ speed_exponent`. Whole numbers, so policies compare.
+/// What a personal best is worth (SQL `points_for`, migration 0058). Finishing earns `finish_base` at tier 1,
+/// times `finish_growth_percent` each tier up. A board's record is worth `record_tier_points` per tier plus
+/// `record_finisher_points` × ln(1 + finishers); the record earns all of that, and a run as far behind it as
+/// the median runner `median_share_percent`, less again further back. The median's distance behind counts as
+/// at least `min_median_gap_percent` of the record. A bonus earns `bonus_percent` of all that at its own tier.
+/// Whole numbers, so policies compare.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct PointsPolicy {
     /// 1 to 100000.
-    pub base: i32,
-    /// 100 to 1000: 200 doubles the value each tier.
-    pub growth_percent: i32,
-    /// 0 to 100.
-    pub finish_percent: i32,
-    /// 1 to 20.
-    pub speed_exponent: i32,
+    pub finish_base: i32,
+    /// 100 to 1000: 150 is ×1.5 each tier.
+    pub finish_growth_percent: i32,
+    /// 0 to 100000.
+    pub record_tier_points: i32,
+    /// 0 to 100000.
+    pub record_finisher_points: i32,
+    /// 1 to 99.
+    pub median_share_percent: i32,
+    /// 1 to 100.
+    pub min_median_gap_percent: i32,
     /// 0 to 100.
     pub bonus_percent: i32,
 }
 
 impl PointsPolicy {
-    /// Used until the community publishes a formula, and shown as a draft (lead, 2026-10-26).
+    /// Used until the community publishes a formula, and shown as a draft (lead, 2026-10-26): the third draft
+    /// posted on Discord (2026-11-17), provisional for public testing (lead, 2026-11-26). The 5% floor on the
+    /// median's distance is ours, not the draft's, for boards with only a few close times.
     pub const DRAFT: Self = Self {
-        base: 50,
-        growth_percent: 200,
-        finish_percent: 50,
-        speed_exponent: 4,
+        finish_base: 10,
+        finish_growth_percent: 150,
+        record_tier_points: 40,
+        record_finisher_points: 40,
+        median_share_percent: 25,
+        min_median_gap_percent: 5,
         bonus_percent: 25,
     };
 }
@@ -95,10 +106,24 @@ impl Policy {
             }
             Self::Points(value) => {
                 let ranges = [
-                    ("base", value.base, 1..=100_000),
-                    ("growth_percent", value.growth_percent, 100..=1000),
-                    ("finish_percent", value.finish_percent, 0..=100),
-                    ("speed_exponent", value.speed_exponent, 1..=20),
+                    ("finish_base", value.finish_base, 1..=100_000),
+                    (
+                        "finish_growth_percent",
+                        value.finish_growth_percent,
+                        100..=1000,
+                    ),
+                    ("record_tier_points", value.record_tier_points, 0..=100_000),
+                    (
+                        "record_finisher_points",
+                        value.record_finisher_points,
+                        0..=100_000,
+                    ),
+                    ("median_share_percent", value.median_share_percent, 1..=99),
+                    (
+                        "min_median_gap_percent",
+                        value.min_median_gap_percent,
+                        1..=100,
+                    ),
                     ("bonus_percent", value.bonus_percent, 0..=100),
                 ];
                 for (name, value, range) in ranges {
@@ -189,7 +214,7 @@ mod tests {
         assert!(Policy::Tiers(TiersPolicy { count: 6 }).check().is_ok());
         assert!(Policy::Points(PointsPolicy::DRAFT).check().is_ok());
         let flat = PointsPolicy {
-            growth_percent: 50,
+            finish_growth_percent: 50,
             ..PointsPolicy::DRAFT
         };
         assert!(Policy::Points(flat).check().is_err());
