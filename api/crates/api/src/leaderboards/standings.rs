@@ -55,6 +55,8 @@ pub struct PointsFormula {
     pub draft: bool,
     /// False until a tier count is published; 2.0 tracks without a tier earn no points.
     pub tiers: bool,
+    /// The published tier count, for pages that list what each tier is worth.
+    pub tier_count: Option<i16>,
 }
 
 /// The published points policy, or the draft while there's none.
@@ -68,10 +70,12 @@ pub async fn formula(conn: &mut PgConnection) -> Result<PointsFormula, sqlx::Err
         Some(Policy::Points(policy)) => Some(policy),
         _ => None,
     });
+    let tier_count = tiers::tier_count(conn).await?;
     Ok(PointsFormula {
         policy: published.unwrap_or(PointsPolicy::DRAFT),
         draft: published.is_none(),
-        tiers: tiers::tier_count(conn).await?.is_some(),
+        tiers: tier_count.is_some(),
+        tier_count,
     })
 }
 

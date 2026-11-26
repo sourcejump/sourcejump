@@ -9050,6 +9050,14 @@
                 "type": "boolean",
                 "description": "True while the community hasn't published a formula and the draft is used."
               },
+              "tier_count": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int32",
+                "description": "The published tier count, for pages that list what each tier is worth."
+              },
               "tiers": {
                 "type": "boolean",
                 "description": "False until a tier count is published; 2.0 tracks without a tier earn no points."

@@ -2,6 +2,7 @@
 // still a draft.
 import type { Schemas } from "@/api/client";
 import { Card } from "@/ui/Card";
+import { PointsDetails } from "./PointsDetails";
 
 const numbers = new Intl.NumberFormat("en", { maximumFractionDigits: 2 });
 const whole = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
@@ -17,39 +18,44 @@ export function PointsNote({
   const growth = formula.finish_growth_percent / 100;
   const tier5 = formula.finish_base * growth ** 4;
   return (
-    <Card className="grid gap-6 md:grid-cols-2 md:items-center">
-      <div className="flex flex-col gap-3 text-sm">
-        <h2 className="font-bold">How points work</h2>
-        {formula.draft && (
-          <p className="text-text">
-            This is a draft until the community agrees on a formula.
+    <Card className="flex flex-col gap-6">
+      <div className="grid gap-6 md:grid-cols-2 md:items-center">
+        <div className="flex flex-col gap-3 text-sm">
+          <h2 className="font-bold">How points work</h2>
+          {formula.draft && (
+            <p className="text-text">
+              This is a draft until the community agrees on a formula.
+            </p>
+          )}
+          <p className="text-text-muted">
+            <span className="text-text">Finishing a map</span> earns points by
+            its tier: {numbers.format(formula.finish_base)} at tier 1, and{" "}
+            {numbers.format(growth)} times more with each tier up, so tier 5 is
+            worth {whole.format(tier5)}.
           </p>
-        )}
-        <p className="text-text-muted">
-          <span className="text-text">Finishing a map</span> earns points by its
-          tier: {numbers.format(formula.finish_base)} at tier 1, and{" "}
-          {numbers.format(growth)} times more with each tier up, so tier 5 is
-          worth {whole.format(tier5)}.
-        </p>
-        <p className="text-text-muted">
-          <span className="text-text">Each world record</span> is worth extra on
-          top: more on harder maps, and a little more the more players have
-          finished the map. The record holder gets all of it. Everyone else gets
-          a share, smaller the further behind they are. How far behind counts is
-          judged against the map&apos;s median player, so short and long maps
-          are treated alike.
-        </p>
-        <p className="text-text-muted">
-          A bonus is worth {formula.bonus_percent}% of a map at its own tier.{" "}
-          {legacy
-            ? "Pre-2.0 records are counted on the old site's tiers and never count toward 2.0."
-            : "Each style counts on its own, and pre-2.0 runs don't count."}
-        </p>
-        {!legacy && !formula.tiers && (
-          <p className="text-text-muted">Points start once maps have tiers.</p>
-        )}
+          <p className="text-text-muted">
+            <span className="text-text">Each world record</span> is worth extra
+            on top: more on harder maps, and a little more the more players have
+            finished the map. The record holder gets all of it. Everyone else
+            gets a share, smaller the further behind they are. How far behind
+            counts is judged against the map&apos;s median player, so short and
+            long maps are treated alike.
+          </p>
+          <p className="text-text-muted">
+            A bonus is worth {formula.bonus_percent}% of a map at its own tier.{" "}
+            {legacy
+              ? "Pre-2.0 records are counted on the old site's tiers and never count toward 2.0."
+              : "Each style counts on its own, and pre-2.0 runs don't count."}
+          </p>
+          {!legacy && !formula.tiers && (
+            <p className="text-text-muted">
+              Points start once maps have tiers.
+            </p>
+          )}
+        </div>
+        <ShareChart sharePercent={formula.median_share_percent} />
       </div>
-      <ShareChart sharePercent={formula.median_share_percent} />
+      <PointsDetails formula={formula} />
     </Card>
   );
 }

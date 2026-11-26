@@ -2710,6 +2710,11 @@ export interface components {
         PointsFormula: components["schemas"]["PointsPolicy"] & {
             /** @description True while the community hasn't published a formula and the draft is used. */
             draft: boolean;
+            /**
+             * Format: int32
+             * @description The published tier count, for pages that list what each tier is worth.
+             */
+            tier_count?: number | null;
             /** @description False until a tier count is published; 2.0 tracks without a tier earn no points. */
             tiers: boolean;
         };
